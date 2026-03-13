@@ -1,55 +1,23 @@
 """
-AI Summarizer Module
-Uses GPT-4o mini to generate intelligent summaries of account data.
+AI Summarizer Service
+Consolidated AI logic for generating account, company, and assertion summaries.
 """
 
-import os
-import httpx
-from openai import OpenAI
-from dotenv import load_dotenv
-
-
-def get_openai_client():
-    """
-    Create and return an OpenAI client using API key from .env file.
-    """
-    env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
-    load_dotenv(env_path)
-    
-    api_key = os.getenv('OPENAI_API_KEY')
-    if not api_key:
-        raise ValueError("Missing OPENAI_API_KEY in .env file")
-    
-    # Use an explicit HTTP client to avoid proxies-argument incompatibilities.
-    return OpenAI(api_key=api_key, http_client=httpx.Client())
-
+from src.core.clients import get_openai_client
 
 def generate_account_summary(data):
     """
-    Generate an AI-powered summary of the account data using GPT-4o mini.
-    
-    Args:
-        data (dict): Dictionary containing all account data including:
-            - company_name
-            - site_size
-            - location
-            - events (finance, business, operational, customer)
-            - assertions
-    
-    Returns:
-        str: AI-generated summary of the account
+    Generate an AI-powered summary of the account data.
     """
     try:
         client = get_openai_client()
         
-        # Prepare the data for the prompt
         company_name = data['company_name']
         site_size = data['site_size']
         location = data['location']
         events = data['events']
         assertions = data['assertions']
         
-        # Build a comprehensive prompt with all the data
         prompt = f"""You are an expert business analyst. Analyze the following company data and provide a concise, insightful summary.
 
 Company: {company_name}
@@ -58,8 +26,6 @@ Site Size: {f"{site_size:,.0f} sq ft" if site_size else "Not available"}
 
 FINANCIAL DATA:
 """
-        
-        # Add financial events
         if events['finance']:
             for event in events['finance']:
                 value = event['event_type_value'] or 'Not Found'
@@ -69,8 +35,6 @@ FINANCIAL DATA:
             prompt += "- No financial data available\n"
         
         prompt += "\nBUSINESS ACTIVITIES:\n"
-        
-        # Add business events
         if events['business']:
             for event in events['business']:
                 value = event['event_type_value'] or 'No Information Found'
@@ -79,20 +43,14 @@ FINANCIAL DATA:
             prompt += "- No business activity data available\n"
         
         prompt += "\nOPERATIONAL DETAILS:\n"
-        
-        # Add key operational events (limit to top 10)
         if events['operational']:
             for event in events['operational'][:10]:
                 value = event['event_type_value'] or 'Not available'
                 prompt += f"- {event['event_type']}: {value}\n"
-            if len(events['operational']) > 10:
-                prompt += f"- ... and {len(events['operational']) - 10} more operational details\n"
         else:
             prompt += "- No operational data available\n"
         
         prompt += "\nCUSTOMER INFORMATION:\n"
-        
-        # Add customer events
         if events['customer']:
             for event in events['customer']:
                 if event['metadata'] and 'is_3pl' in event['metadata']:
@@ -104,8 +62,6 @@ FINANCIAL DATA:
             prompt += "- No customer data available\n"
         
         prompt += f"\nASSERTIONS: {len(assertions)} assertions evaluated\n"
-        
-        # Add assertion summary
         if assertions:
             supported = len([a for a in assertions if a['classification'] and 'SUPPORTED' in a['classification']])
             contested = len([a for a in assertions if a['classification'] and 'CONTESTED' in a['classification']])
@@ -113,7 +69,6 @@ FINANCIAL DATA:
             prompt += f"- Supported: {supported}, Contested: {contested}, Opposed: {opposed}\n"
         
         prompt += """
-
 Please provide a concise 5-6 sentence summary that covers:
 1. Brief overview of the company and its operations
 2. Key financial and business highlights
@@ -122,65 +77,79 @@ Please provide a concise 5-6 sentence summary that covers:
 
 Be professional, direct, and focus on the most important actionable insights."""
         
-        # Call GPT-4o mini
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {
-                    "role": "system",
-                    "content": "You are an expert business analyst specializing in warehouse and logistics operations. Provide clear, insightful summaries based on data."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
+                {"role": "system", "content": "You are an expert business analyst specializing in warehouse and logistics operations."},
+                {"role": "user", "content": prompt}
             ],
             temperature=0.7,
             max_tokens=300
         )
-        
         return response.choices[0].message.content
-        
     except Exception as e:
         return f"Error generating summary: {str(e)}"
 
-
-def generate_quick_summary(data):
+def generate_company_overview(company_name, full_address):
     """
-    Generate a quick 2-3 sentence summary of the account.
-    
-    Args:
-        data (dict): Dictionary containing account data
-    
-    Returns:
-        str: Brief AI-generated summary
+    Generate a factual overview of the company based on name and location.
     """
     try:
         client = get_openai_client()
-        
-        company_name = data['company_name']
-        site_size = data['site_size']
-        location = data['location']
-        
-        prompt = f"""Provide a 2-3 sentence executive summary for:
+        prompt = f"""Provide a general 5-sentence overview about this company:
 
-Company: {company_name}
-Location: {location.get('full_address', 'Not available')}
-Site Size: {f"{site_size:,.0f} sq ft" if site_size else "Not available"}
+Company Name: {company_name}
+Location: {full_address}
 
-Be concise and professional."""
+Include information about:
+- What the company does (business description)
+- Industry/sector
+- Type of operations
+- Any notable characteristics
+
+Be factual and professional."""
         
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are a business analyst. Provide brief, professional summaries."},
+                {"role": "system", "content": "You are a business research assistant."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
-            max_tokens=150
+            max_tokens=250
         )
-        
         return response.choices[0].message.content
-        
     except Exception as e:
-        return f"Error: {str(e)}"
+        return f"Error generating company overview: {str(e)}"
+
+def generate_assertion_summary(assertions):
+    """
+    Generate a narrative summary of assertions.
+    """
+    try:
+        client = get_openai_client()
+        if not assertions:
+            return "No assertions available to analyze."
+        
+        prompt = f"Analyze the following {len(assertions)} assertions about a company and provide a narrative summary.\n\nASSERTIONS DATA:\n"
+        for i, assertion in enumerate(assertions, 1):
+            supporting = f"{assertion['supporting_score']:.2f}" if assertion['supporting_score'] is not None else 'N/A'
+            opposing = f"{assertion['opposing_score']:.2f}" if assertion['opposing_score'] is not None else 'N/A'
+            net = f"{assertion['net_score']:.2f}" if assertion['net_score'] is not None else 'N/A'
+            classification = assertion['classification'] or 'UNKNOWN'
+            prompt += f"{i}. [{assertion['assertion_type']}] {assertion['assertion_text']} (Support: {supporting}, Oppose: {opposing}, Net: {net}, Class: {classification})\n"
+        
+        prompt += "\nProvide a concise narrative summary (5-7 sentences) covering key insights, patterns, and the overall picture."
+        
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a data analyst specializing in evidence-based assessment."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=250
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"Error generating assertion summary: {str(e)}"

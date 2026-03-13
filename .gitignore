@@ -3,3 +3,5 @@ app/.env
 venv/
 __pycache__/
 *.pyc
+vercel_optimization_report.md.resolved
+VERCEL_DEPLOYMENT.md

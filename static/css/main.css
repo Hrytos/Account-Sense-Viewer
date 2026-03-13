@@ -254,12 +254,44 @@ tbody tr:hover td { background: rgba(255,255,255,0.025); }
   gap: 0.6rem;
   margin: 1.5rem 0;
   align-items: center;
+  justify-content: center;
 }
-.search-bar input {
-  flex: 1;
+.search-wrapper {
+  flex: 0 1 600px;
+  position: relative;
+}
+.search-wrapper input {
+  width: 100%;
   font-size: 0.95rem;
 }
 .search-bar .btn { white-space: nowrap; }
+
+.company-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  z-index: 50;
+  display: none;
+}
+.company-suggestion {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.company-suggestion:hover {
+  background: rgba(255,255,255,0.08);
+}
 
 /* ── Empty state ──────────────────────────────────────────────────────────── */
 .empty-state {
@@ -267,6 +299,63 @@ tbody tr:hover td { background: rgba(255,255,255,0.025); }
   padding: 2rem 1rem;
   color: var(--text-muted);
   font-size: 0.875rem;
+}
+
+/* ── Site cards (company → sites selection) ─────────────────────────────────── */
+.site-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.9rem;
+  margin-top: 0.5rem;
+}
+.site-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.site-card-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+.site-card-address {
+  font-size: 0.86rem;
+  color: var(--text-muted);
+}
+.site-card-meta {
+  margin-top: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.8rem;
+}
+.site-card-meta-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+.site-card-meta-row .meta-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.site-card-meta-row .meta-value {
+  font-weight: 500;
+  color: var(--text);
+}
+.site-card-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.76rem;
+  text-align: right;
+}
+.site-card .btn-small {
+  margin-top: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
 }
 
 /* ── Login page ───────────────────────────────────────────────────────────── */

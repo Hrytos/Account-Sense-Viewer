@@ -27,7 +27,11 @@ from dotenv import load_dotenv
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from src.services.data_fetcher import get_site_data
+from src.services.data_fetcher import (
+    get_site_data,
+    list_companies,
+    list_sites_for_account,
+)
 from src.services.ai_summarizer import (
     generate_account_summary,
     generate_company_overview,
@@ -222,12 +226,83 @@ async def logout(request: Request):
 
 
 @app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard(request: Request):
+async def dashboard(request: Request, account_id: Optional[str] = None):
     if not request.session.get("authenticated"):
         return RedirectResponse("/", status_code=302)
+
+    companies = await list_companies()
+    sites = []
+    selected_company_name = ""
+    if account_id:
+        for c in companies:
+            if c["account_id"] == account_id:
+                selected_company_name = c["company_name"]
+                break
+        sites = await list_sites_for_account(account_id)
+
     return templates.TemplateResponse(
         "dashboard.html",
-        {"request": request, "view": None, "error": None, "site_id": ""},
+        {
+            "request": request,
+            "view": None,
+            "error": None,
+            "site_id": "",
+            "companies": companies,
+            "selected_account_id": account_id or "",
+            "selected_company_name": selected_company_name,
+            "sites": sites,
+        },
+    )
+
+
+@app.post("/select-company", response_class=HTMLResponse)
+async def select_company(
+    request: Request,
+    company_name: str = Form(...),
+):
+    if not request.session.get("authenticated"):
+        return RedirectResponse("/", status_code=302)
+
+    companies = await list_companies()
+
+    account_id = None
+    selected_company_name = company_name.strip()
+    for c in companies:
+        if c["company_name"] == company_name:
+            account_id = c["account_id"]
+            selected_company_name = c["company_name"]
+            break
+
+    if not account_id:
+        # Company name not found – show error but keep what user typed
+        return templates.TemplateResponse(
+            "dashboard.html",
+            {
+                "request": request,
+                "view": None,
+                "error": f'No company found matching "{company_name}".',
+                "site_id": "",
+                "companies": companies,
+                "selected_account_id": "",
+                "selected_company_name": selected_company_name,
+                "sites": [],
+            },
+        )
+
+    sites = await list_sites_for_account(account_id)
+
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {
+            "request": request,
+            "view": None,
+            "error": None,
+            "site_id": "",
+            "companies": companies,
+            "selected_account_id": account_id,
+            "selected_company_name": selected_company_name,
+            "sites": sites,
+        },
     )
 
 
@@ -235,15 +310,38 @@ async def dashboard(request: Request):
 async def lookup(
     request: Request,
     site_id: str = Form(...),
+    account_id: Optional[str] = Form(None),
 ):
     if not request.session.get("authenticated"):
         return RedirectResponse("/", status_code=302)
 
     site_id = site_id.strip()
+    selected_account_id = account_id or ""
+
+    # Always provide companies for the dropdown; sites only when explicitly selected.
+    companies = await list_companies()
+    sites = []
+
+    # Derive selected_company_name from selected_account_id (when present)
+    selected_company_name = ""
+    if selected_account_id:
+        for c in companies:
+            if c["account_id"] == selected_account_id:
+                selected_company_name = c["company_name"]
+                break
     if not site_id:
         return templates.TemplateResponse(
             "dashboard.html",
-            {"request": request, "view": None, "error": "Please enter a Site ID.", "site_id": ""},
+            {
+                "request": request,
+                "view": None,
+                "error": "Please enter a Site ID.",
+                "site_id": "",
+                "companies": companies,
+                "selected_account_id": selected_account_id,
+                "selected_company_name": selected_company_name,
+                "sites": sites,
+            },
         )
 
     try:
@@ -254,7 +352,16 @@ async def lookup(
             error_msg = "403 Forbidden — check Supabase RLS policies and your service_role key."
         return templates.TemplateResponse(
             "dashboard.html",
-            {"request": request, "view": None, "error": error_msg, "site_id": site_id},
+            {
+                "request": request,
+                "view": None,
+                "error": error_msg,
+                "site_id": site_id,
+                "companies": companies,
+                "selected_account_id": selected_account_id,
+                "selected_company_name": selected_company_name,
+                "sites": sites,
+            },
         )
 
     view = build_view_model(data)
@@ -279,5 +386,14 @@ async def lookup(
 
     return templates.TemplateResponse(
         "dashboard.html",
-        {"request": request, "view": view, "error": None, "site_id": site_id},
+        {
+            "request": request,
+            "view": view,
+            "error": None,
+            "site_id": site_id,
+            "companies": companies,
+            "selected_account_id": selected_account_id,
+            "selected_company_name": selected_company_name,
+            "sites": sites,
+        },
     )

@@ -1,10 +1,109 @@
 """
 Data Fetcher Service
 Fetches site and account data from Supabase in parallel.
+Also exposes helpers for listing companies and sites.
 """
 
 import asyncio
+from typing import List, Dict
+
 from src.core.clients import get_supabase_client
+
+
+async def list_companies() -> List[Dict]:
+    """
+    Return a de-duplicated, alphabetically sorted list of companies.
+    Each entry has: account_id, company_name.
+    """
+    supabase = get_supabase_client()
+
+    def run_exec():
+        return (
+            supabase.table("view_account_site_size")
+            .select("account_id, company_name")
+            .order("company_name")
+            .execute()
+        )
+
+    res = await asyncio.to_thread(run_exec)
+    rows = res.data or []
+
+    # De-duplicate by account_id, keep first occurrence (already ordered by name)
+    seen = {}
+    for row in rows:
+        acc_id = row.get("account_id")
+        name = row.get("company_name")
+        if not acc_id or not name:
+            continue
+        if acc_id not in seen:
+            seen[acc_id] = {"account_id": acc_id, "company_name": name}
+
+    return list(seen.values())
+
+
+async def list_sites_for_account(account_id: str) -> List[Dict]:
+    """
+    Return all sites for a given account_id from view_account_site_size.
+    Each site entry includes basic fields for UI cards.
+    """
+    supabase = get_supabase_client()
+
+    def run_exec_sites():
+        return (
+            supabase.table("view_account_site_size")
+            .select("site_id, account_id, company_name, site_size_value, metadata")
+            .eq("account_id", account_id)
+            .execute()
+        )
+
+    sites_res = await asyncio.to_thread(run_exec_sites)
+    rows = sites_res.data or []
+
+    # Build assertion counts per site_id using a single IN query on site_ids
+    assertion_counts: Dict[str, int] = {}
+    site_ids = [row.get("site_id") for row in rows if row.get("site_id")]
+    if site_ids:
+        def run_exec_assertions():
+            return (
+                supabase.table("account_sites_assertion")
+                .select("site_id")
+                .in_("site_id", site_ids)
+                .execute()
+            )
+
+        assertions_res = await asyncio.to_thread(run_exec_assertions)
+        for row in assertions_res.data or []:
+            sid = row.get("site_id")
+            if not sid:
+                continue
+            assertion_counts[sid] = assertion_counts.get(sid, 0) + 1
+
+    sites: List[Dict] = []
+    for row in rows:
+        metadata = row.get("metadata") or {}
+        full_address = None
+        if isinstance(metadata, dict):
+            full_address = metadata.get("full_address")
+
+        size_val = row.get("site_size_value")
+        site_size_str = f"{size_val:,.0f} sq ft" if isinstance(size_val, (int, float)) else None
+
+        site_id = row.get("site_id")
+        assertion_count = assertion_counts.get(site_id, 0)
+
+        sites.append(
+            {
+                "site_id": site_id,
+                "account_id": row.get("account_id"),
+                "company_name": row.get("company_name"),
+                "full_address": full_address,
+                "site_size_value": size_val,
+                "site_size_str": site_size_str,
+                "assertion_count": assertion_count,
+            }
+        )
+
+    return sites
 
 
 async def get_site_data(site_id: str) -> dict:

@@ -1,0 +1,299 @@
+/* ── Reset & base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:          #0e1117;
+  --surface:     #1a1d27;
+  --border:      rgba(255,255,255,0.1);
+  --border-soft: rgba(255,255,255,0.06);
+  --text:        #e8eaf0;
+  --text-muted:  rgba(232,234,240,0.5);
+  --accent:      #4f8ef7;
+  --accent-hover:#3a7ae0;
+  --radius:      0.5rem;
+  --font:        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── Layout ──────────────────────────────────────────────────────────────── */
+.page-wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+/* ── Top nav bar ──────────────────────────────────────────────────────────── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.topbar-brand {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.topbar-brand span { opacity: 0.5; font-weight: 400; margin-left: 0.4rem; font-size: 0.875rem; }
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1.1rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s, opacity 0.15s;
+  text-decoration: none;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--accent-hover); text-decoration: none; color:#fff; }
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover { background: rgba(255,255,255,0.05); color: var(--text); text-decoration: none; }
+
+/* ── Forms ────────────────────────────────────────────────────────────────── */
+input[type="text"],
+input[type="password"] {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 0.9rem;
+  padding: 0.6rem 0.85rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+input[type="text"]:focus,
+input[type="password"]:focus {
+  border-color: var(--accent);
+}
+input::placeholder { color: var(--text-muted); }
+
+label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 0.35rem;
+}
+
+.form-group { margin-bottom: 1rem; }
+
+/* ── Alerts ───────────────────────────────────────────────────────────────── */
+.alert {
+  padding: 0.7rem 1rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+.alert-error   { background: rgba(239,68,68,0.12);  border: 1px solid rgba(239,68,68,0.3);  color: #fca5a5; }
+.alert-success { background: rgba(34,197,94,0.12);  border: 1px solid rgba(34,197,94,0.3);  color: #86efac; }
+.alert-warning { background: rgba(234,179,8,0.12);  border: 1px solid rgba(234,179,8,0.3);  color: #fde68a; }
+
+/* ── Section headers ──────────────────────────────────────────────────────── */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 2.5rem 0 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--border);
+}
+.section-header h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.subsection-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 1.5rem 0 0.6rem;
+  color: var(--text);
+}
+
+/* ── Metric cards ─────────────────────────────────────────────────────────── */
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.metric-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+}
+.metric-card .label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+.metric-card .value {
+  font-size: 0.975rem;
+  font-weight: 600;
+  word-break: break-all;
+  color: var(--text);
+}
+
+/* ── Divider ──────────────────────────────────────────────────────────────── */
+hr.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
+}
+
+/* ── Tables ───────────────────────────────────────────────────────────────── */
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.875rem;
+  color: var(--text);
+}
+thead tr { background: rgba(255,255,255,0.04); }
+th {
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  font-size: 0.73rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+td {
+  padding: 0.6rem 0.75rem;
+  vertical-align: top;
+  text-align: left;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--border-soft);
+  line-height: 1.5;
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: rgba(255,255,255,0.025); }
+
+/* two-col tables (Type/Value) */
+.table-col-30 th:nth-child(1), .table-col-30 td:nth-child(1) { width: 30%; }
+.table-col-30 th:nth-child(2), .table-col-30 td:nth-child(2) { width: 70%; }
+
+/* assertions table column widths */
+.assertions-table th:nth-child(1), .assertions-table td:nth-child(1) { width: 4%; }
+.assertions-table th:nth-child(2), .assertions-table td:nth-child(2) { width: 46%; }
+.assertions-table th:nth-child(3), .assertions-table td:nth-child(3) { width: 11%; }
+.assertions-table th:nth-child(4), .assertions-table td:nth-child(4) { width: 7%; }
+.assertions-table th:nth-child(5), .assertions-table td:nth-child(5) { width: 7%; }
+.assertions-table th:nth-child(6), .assertions-table td:nth-child(6) { width: 7%; }
+.assertions-table th:nth-child(7), .assertions-table td:nth-child(7) { width: 18%; }
+
+/* ── AI summary cards ─────────────────────────────────────────────────────── */
+.ai-card {
+  background: rgba(79,142,247,0.05);
+  border: 1px solid rgba(79,142,247,0.2);
+  border-radius: var(--radius);
+  padding: 1rem 1.2rem;
+  margin-bottom: 1rem;
+  line-height: 1.7;
+  font-size: 0.9rem;
+}
+.ai-card .ai-card-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+/* ── Search bar (dashboard) ───────────────────────────────────────────────── */
+.search-bar {
+  display: flex;
+  gap: 0.6rem;
+  margin: 1.5rem 0;
+  align-items: center;
+}
+.search-bar input {
+  flex: 1;
+  font-size: 0.95rem;
+}
+.search-bar .btn { white-space: nowrap; }
+
+/* ── Empty state ──────────────────────────────────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+/* ── Login page ───────────────────────────────────────────────────────────── */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+.login-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 2.5rem 2rem;
+  width: 100%;
+  max-width: 400px;
+}
+.login-box h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+}
+.login-box p {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin-bottom: 1.75rem;
+}
+.login-box .btn { width: 100%; justify-content: center; margin-top: 0.25rem; padding: 0.65rem; }

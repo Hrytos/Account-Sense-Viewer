@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Account Sense Viewer{% endblock %}
+
+{% block body %}
+
+{# ── Top nav ── #}
+<nav class="topbar">
+  <div class="topbar-brand">📊 Account Sense Viewer <span>Dashboard</span></div>
+  <a href="/logout" class="btn btn-ghost">🚪 Logout</a>
+</nav>
+
+<div class="page-wrap">
+
+  {# ── Search bar ── #}
+  <form method="post" action="/lookup" class="search-bar">
+    <input
+      type="text"
+      name="site_id"
+      value="{{ site_id }}"
+      placeholder="Enter Site ID  (e.g. d80e7532-2253-4c53-a31b-90e05dfb98d8)"
+      autocomplete="off"
+      required
+    />
+    <button type="submit" class="btn btn-primary">Load →</button>
+  </form>
+
+  {# ── Error ── #}
+  {% if error %}
+  <div class="alert alert-error">{{ error }}</div>
+  {% endif %}
+
+  {# ── Empty state (no data yet) ── #}
+  {% if not view %}
+  <div class="empty-state" style="padding: 5rem 1rem;">
+    ⬆️ Enter a Site ID above and press <strong>Load →</strong> to begin
+  </div>
+
+  {% else %}
+  {# ════════════════════════════════════════════════════════════════════════ #}
+  {# RUN DETAILS                                                              #}
+  {# ════════════════════════════════════════════════════════════════════════ #}
+  <div class="section-header">
+    <span>🕐</span><h2>Run Details</h2>
+  </div>
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="label">Total Assertions</div>
+      <div class="value">{{ view.total_assertions }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Created At</div>
+      <div class="value">{{ view.latest_created }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Last Updated</div>
+      <div class="value">{{ view.latest_updated }}</div>
+    </div>
+  </div>
+
+  {# ════════════════════════════════════════════════════════════════════════ #}
+  {# ACCOUNT SUMMARY                                                          #}
+  {# ════════════════════════════════════════════════════════════════════════ #}
+  <div class="section-header">
+    <span>🏢</span><h2>Account Summary</h2>
+  </div>
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="label">Company</div>
+      <div class="value">{{ view.company_name or "—" }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Site ID</div>
+      <div class="value">{{ view.site_id or "—" }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Account ID</div>
+      <div class="value">{{ view.account_id or "—" }}</div>
+    </div>
+  </div>
+
+  {# AI Summary #}
+  {% if view.ai_summary %}
+  <div class="ai-card">
+    <div class="ai-card-title">🤖 AI-Generated Summary</div>
+    {{ view.ai_summary }}
+  </div>
+  {% endif %}
+
+  {# About the Company #}
+  {% if view.company_overview %}
+  <div class="ai-card">
+    <div class="ai-card-title">ℹ️ About the Company</div>
+    {{ view.company_overview }}
+  </div>
+  {% endif %}
+
+  {# Financials #}
+  <div class="subsection-title">Financials</div>
+  {% if view.finance_rows %}
+  <div class="table-wrapper">
+    <table class="table-col-30">
+      <thead><tr><th>Type</th><th>Value</th></tr></thead>
+      <tbody>
+        {% for row in view.finance_rows %}
+        <tr><td>{{ row.Type }}</td><td>{{ row.Value }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">No financial data available</div>
+  {% endif %}
+
+  {# Key Business Activities #}
+  <div class="subsection-title">Key Business Activities</div>
+  {% if view.business_rows %}
+  <div class="table-wrapper">
+    <table class="table-col-30">
+      <thead><tr><th>Activity Type</th><th>Details</th></tr></thead>
+      <tbody>
+        {% for row in view.business_rows %}
+        <tr><td>{{ row["Activity Type"] }}</td><td>{{ row.Details }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">No business activity data available</div>
+  {% endif %}
+
+  <hr class="divider" />
+
+  {# ════════════════════════════════════════════════════════════════════════ #}
+  {# SITE SUMMARY                                                             #}
+  {# ════════════════════════════════════════════════════════════════════════ #}
+  <div class="section-header">
+    <span>📍</span><h2>Site Summary</h2>
+  </div>
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="label">Address</div>
+      <div class="value">{{ view.full_address }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Facility Type</div>
+      <div class="value">{{ view.facility_type }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Size</div>
+      <div class="value">{{ view.site_size_str }}</div>
+    </div>
+  </div>
+
+  {# Nature of Operations #}
+  <div class="subsection-title">Nature of Operations</div>
+  {% if view.operational_rows %}
+  <div class="table-wrapper">
+    <table class="table-col-30">
+      <thead><tr><th>Operation Type</th><th>Details</th></tr></thead>
+      <tbody>
+        {% for row in view.operational_rows %}
+        <tr><td>{{ row["Operation Type"] }}</td><td>{{ row.Details }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">No operational data available</div>
+  {% endif %}
+
+  {# Customers #}
+  <div class="subsection-title">Customers</div>
+  {% if view.customer_rows %}
+  <div class="table-wrapper">
+    <table class="table-col-30">
+      <thead><tr><th>Type</th><th>Details</th></tr></thead>
+      <tbody>
+        {% for row in view.customer_rows %}
+        <tr><td>{{ row.Type }}</td><td>{{ row.Details }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">No customer data available</div>
+  {% endif %}
+
+  {# Type of Inventory #}
+  <div class="subsection-title">Type of Inventory</div>
+  {% if view.inventory_rows %}
+  <div class="table-wrapper">
+    <table class="table-col-30">
+      <thead><tr><th>Type</th><th>Details</th></tr></thead>
+      <tbody>
+        {% for row in view.inventory_rows %}
+        <tr><td>{{ row.Type }}</td><td>{{ row.Details }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">No inventory data available</div>
+  {% endif %}
+
+  <hr class="divider" />
+
+  {# ════════════════════════════════════════════════════════════════════════ #}
+  {# ASSERTIONS                                                               #}
+  {# ════════════════════════════════════════════════════════════════════════ #}
+  <div class="section-header">
+    <span>📋</span><h2>Assertions</h2>
+  </div>
+
+  {# Assertion AI summary #}
+  {% if view.assertion_summary %}
+  <div class="ai-card">
+    <div class="ai-card-title">📊 Assertion Analysis Summary</div>
+    {{ view.assertion_summary }}
+  </div>
+  {% endif %}
+
+  {# Assertions table #}
+  {% if view.assertion_rows %}
+  <div class="table-wrapper">
+    <table class="assertions-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Assertion</th>
+          <th>Type</th>
+          <th>Support</th>
+          <th>Oppose</th>
+          <th>Net</th>
+          <th>Classification</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in view.assertion_rows %}
+        <tr>
+          <td>{{ row.num }}</td>
+          <td>{{ row.assertion_text }}</td>
+          <td>{{ row.assertion_type }}</td>
+          <td>{{ row.support }}</td>
+          <td>{{ row.oppose }}</td>
+          <td>{{ row.net }}</td>
+          <td>{{ row.classification }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">No assertions available</div>
+  {% endif %}
+
+  {% endif %} {# end if view #}
+</div> {# end .page-wrap #}
+
+{% endblock %}

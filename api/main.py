@@ -110,9 +110,20 @@ def build_view_model(data: dict) -> dict:
             dt = parse_iso_timestamp(max(updated_dates))
             latest_updated = dt.strftime("%Y-%m-%d %H:%M:%S UTC") if dt else None
 
-    # ── Location ──
-    location = data["location"]
-    facility_type = (location.get("metadata") or {}).get("facility_type", "—")
+    # ── Location ── (defensive: handle string, list, or dict)
+    location_raw = data["location"]
+    if isinstance(location_raw, str):
+        location = {"full_address": location_raw, "metadata": None}
+    elif isinstance(location_raw, list):
+        location = location_raw[0] if location_raw else {}
+    elif isinstance(location_raw, dict):
+        location = location_raw
+    else:
+        location = {}
+    
+    # Now location is guaranteed to be a dict
+    metadata = location.get("metadata") or {}
+    facility_type = metadata.get("facility_type", "—") if isinstance(metadata, dict) else "—"
     site_size_str = f"{data['site_size']:,.0f} sq ft" if data["site_size"] else "—"
 
     # ── Assertions ──
@@ -129,28 +140,28 @@ def build_view_model(data: dict) -> dict:
             "classification": a["classification"] or "UNKNOWN",
         })
 
-    # ── Event tables ──
+    # ── Event tables ── (defensive: handle null event_type / event_type_value)
     finance_rows = [
-        {"Type": e["event_type"], "Value": e["event_type_value"] or "Not Found"}
+        {"Type": e.get("event_type") or "—", "Value": e.get("event_type_value") or "Not Found"}
         for e in data["events"]["finance"]
     ]
     business_rows = [
-        {"Activity Type": e["event_type"], "Details": e["event_type_value"] or "No Information Found"}
+        {"Activity Type": e.get("event_type") or "—", "Details": e.get("event_type_value") or "No Information Found"}
         for e in data["events"]["business"]
     ]
     operational_events = data["events"]["operational"]
     operational_rows = [
-        {"Operation Type": e["event_type"], "Details": str(e["event_type_value"]) if e["event_type_value"] else "Not available"}
+        {"Operation Type": e.get("event_type") or "—", "Details": str(e.get("event_type_value")) if e.get("event_type_value") else "Not available"}
         for e in operational_events
     ]
     customer_rows = [
-        {"Type": e["event_type"], "Details": e["event_type_value"] or "No Information Found"}
+        {"Type": e.get("event_type") or "—", "Details": e.get("event_type_value") or "No Information Found"}
         for e in data["events"]["customer"]
     ]
     inventory_rows = [
-        {"Type": e["event_type"], "Details": e["event_type_value"] or "—"}
+        {"Type": e.get("event_type") or "—", "Details": e.get("event_type_value") or "—"}
         for e in operational_events
-        if "inventory" in e["event_type"].lower()
+        if e.get("event_type") and "inventory" in e["event_type"].lower()
     ]
 
     return {

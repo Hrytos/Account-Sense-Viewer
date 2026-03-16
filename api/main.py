@@ -17,6 +17,7 @@ import os
 import re
 from datetime import datetime
 from typing import Optional
+from urllib.parse import quote_plus
 
 from fastapi import FastAPI, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -131,6 +132,16 @@ def build_view_model(data: dict) -> dict:
     facility_type = metadata.get("facility_type", "—") if isinstance(metadata, dict) else "—"
     site_size_str = f"{data['site_size']:,.0f} sq ft" if data["site_size"] else "—"
 
+    # ── Google Maps URL for site ──
+    full_address = location.get("full_address") or ""
+    company_name = data.get("company_name") or ""
+    maps_query = ", ".join(part for part in [company_name, full_address] if part)
+    maps_url = (
+        f"https://www.google.com/maps/search/?api=1&query={quote_plus(maps_query)}"
+        if maps_query
+        else None
+    )
+
     # ── Assertions ──
     sorted_assertions = sorted(assertions, key=lambda x: x["net_score"] or 0, reverse=True)
     assertion_rows = []
@@ -179,9 +190,10 @@ def build_view_model(data: dict) -> dict:
         "latest_created":   latest_created or "—",
         "latest_updated":   latest_updated or "—",
         # location / size
-        "full_address":  location.get("full_address") or "—",
+        "full_address":  full_address or "—",
         "facility_type": facility_type,
         "site_size_str": site_size_str,
+        "maps_url":      maps_url,
         # event tables
         "finance_rows":      finance_rows,
         "business_rows":     business_rows,

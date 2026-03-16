@@ -6,3 +6,6 @@ __pycache__/
 vercel_optimization_report.md.resolved
 VERCEL_DEPLOYMENT.md
 __init__.py
+to-run.md
+fitment-checker/
+flow.md

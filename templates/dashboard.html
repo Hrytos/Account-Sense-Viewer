@@ -182,6 +182,16 @@
       <div class="label">Address</div>
       <div class="value">{{ view.full_address }}</div>
     </div>
+    {% if view.maps_url %}
+    <div class="metric-card">
+      <div class="label">Map</div>
+      <div class="value">
+        <a href="{{ view.maps_url }}" target="_blank" rel="noopener">
+          View {{ view.company_name }} on Google Maps
+        </a>
+      </div>
+    </div>
+    {% endif %}
     <div class="metric-card">
       <div class="label">Facility Type</div>
       <div class="value">{{ view.facility_type }}</div>

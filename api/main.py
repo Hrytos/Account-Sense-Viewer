@@ -6,6 +6,7 @@ Routes:
     POST /login     → verify credentials, set session cookie
     GET  /logout    → clear session, redirect to /
     GET  /dashboard → main app page (requires auth)
+    GET  /viewer    → direct viewer with site_id in URL (?site_id=12345)
     POST /lookup    → fetch site data + AI summaries, return rendered dashboard
 
 Usage (local):
@@ -302,6 +303,90 @@ async def select_company(
             "selected_account_id": account_id,
             "selected_company_name": selected_company_name,
             "sites": sites,
+        },
+    )
+
+
+@app.get("/viewer", response_class=HTMLResponse)
+async def viewer(request: Request, site_id: Optional[str] = None):
+    """
+    Direct viewer endpoint: /viewer?site_id=12345
+    Opens the full viewer for the given site_id without needing the search box.
+    """
+    if not request.session.get("authenticated"):
+        return RedirectResponse("/", status_code=302)
+
+    companies = await list_companies()
+
+    if not site_id:
+        # No site_id provided — show empty state
+        return templates.TemplateResponse(
+            "dashboard.html",
+            {
+                "request": request,
+                "view": None,
+                "error": "No site_id provided in URL. Use /viewer?site_id=YOUR_SITE_ID",
+                "site_id": "",
+                "companies": companies,
+                "selected_account_id": "",
+                "selected_company_name": "",
+                "sites": [],
+            },
+        )
+
+    site_id = site_id.strip()
+
+    try:
+        data = await get_site_data(site_id)
+    except Exception as e:
+        error_msg = str(e)
+        if "403" in error_msg or "Forbidden" in error_msg:
+            error_msg = "403 Forbidden — check Supabase RLS policies and your service_role key."
+        return templates.TemplateResponse(
+            "dashboard.html",
+            {
+                "request": request,
+                "view": None,
+                "error": error_msg,
+                "site_id": site_id,
+                "companies": companies,
+                "selected_account_id": "",
+                "selected_company_name": "",
+                "sites": [],
+            },
+        )
+
+    view = build_view_model(data)
+
+    # ── AI summaries (generated here, passed into template) ──
+    try:
+        view["ai_summary"] = generate_account_summary(data)
+    except Exception as e:
+        view["ai_summary"] = f"Could not generate summary: {e}"
+
+    try:
+        view["company_overview"] = generate_company_overview(
+            data["company_name"], data["location"]["full_address"]
+        )
+    except Exception as e:
+        view["company_overview"] = f"Could not generate company overview: {e}"
+
+    try:
+        view["assertion_summary"] = generate_assertion_summary(data["assertions"])
+    except Exception as e:
+        view["assertion_summary"] = f"Could not generate assertion summary: {e}"
+
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {
+            "request": request,
+            "view": view,
+            "error": None,
+            "site_id": site_id,
+            "companies": companies,
+            "selected_account_id": "",
+            "selected_company_name": "",
+            "sites": [],
         },
     )
 

@@ -117,6 +117,16 @@
       <div class="label">Account ID</div>
       <div class="value">{{ view.account_id or "—" }}</div>
     </div>
+    {% if view.source_url %}
+    <div class="metric-card">
+      <div class="label">Website</div>
+      <div class="value">
+        <a href="{{ view.source_url }}" target="_blank" rel="noopener">
+          {{ view.source_url }}
+        </a>
+      </div>
+    </div>
+    {% endif %}
   </div>
 
   {# AI Summary #}

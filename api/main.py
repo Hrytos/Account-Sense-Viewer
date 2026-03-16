@@ -142,6 +142,9 @@ def build_view_model(data: dict) -> dict:
         else None
     )
 
+    # ── Website URL ──
+    source_url = location.get("source_url") or None
+
     # ── Assertions ──
     sorted_assertions = sorted(assertions, key=lambda x: x["net_score"] or 0, reverse=True)
     assertion_rows = []
@@ -185,6 +188,7 @@ def build_view_model(data: dict) -> dict:
         "site_id":        data["site_id"],
         "account_id":     data["account_id"],
         "company_name":   data["company_name"],
+        "source_url":     source_url,
         # run details
         "total_assertions": len(assertions),
         "latest_created":   latest_created or "—",

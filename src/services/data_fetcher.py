@@ -141,7 +141,7 @@ async def get_site_data(site_id: str) -> dict:
 
     tasks = [
         # Location (site-level)
-        fetch_query("account_sites", "street, city, state, zip, country, full_address, metadata", "site_id", site_id, single=True),
+        fetch_query("account_sites", "street, city, state, zip, country, full_address, metadata, source_url", "site_id", site_id, single=True),
         # Assertions (site-level)
         fetch_query("account_sites_assertion", "*, assertions(*)", "site_id", site_id),
         # Finance events (account-level)

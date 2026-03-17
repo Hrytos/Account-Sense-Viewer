@@ -127,6 +127,18 @@
       </div>
     </div>
     {% endif %}
+    <div class="metric-card">
+      <div class="label">LinkedIn</div>
+      <div class="value">
+        {% if view.linkedin_url %}
+          <a href="{{ view.linkedin_url }}" target="_blank" rel="noopener">
+            View {{ view.company_name }} on LinkedIn
+          </a>
+        {% else %}
+          None
+        {% endif %}
+      </div>
+    </div>
   </div>
 
   {# AI Summary #}

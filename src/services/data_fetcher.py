@@ -142,6 +142,8 @@ async def get_site_data(site_id: str) -> dict:
     tasks = [
         # Location (site-level)
         fetch_query("account_sites", "street, city, state, zip, country, full_address, metadata, source_url", "site_id", site_id, single=True),
+        # Account (account-level)
+        fetch_query("accounts", "linkedin_url", "account_id", account_id, single=True),
         # Assertions (site-level)
         fetch_query("account_sites_assertion", "*, assertions(*)", "site_id", site_id),
         # Finance events (account-level)
@@ -155,7 +157,7 @@ async def get_site_data(site_id: str) -> dict:
     ]
 
     results = await asyncio.gather(*tasks)
-    location_res, assertions_raw, finance_res, business_res, operational_res, customer_res = results
+    location_res, account_res, assertions_raw, finance_res, business_res, operational_res, customer_res = results
 
     assertions = []
     for item in assertions_raw.data:
@@ -177,6 +179,7 @@ async def get_site_data(site_id: str) -> dict:
         "company_name": company_name,
         "site_size":    site_size,
         "location":     location_res.data,
+        "linkedin_url": (account_res.data or {}).get("linkedin_url"),
         "assertions":   assertions,
         "events": {
             "finance":     finance_res.data,

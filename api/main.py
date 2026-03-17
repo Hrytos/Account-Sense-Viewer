@@ -142,8 +142,11 @@ def build_view_model(data: dict) -> dict:
         else None
     )
 
-    # ── Website URL ──
-    source_url = location.get("source_url") or None
+    # ── Account domain (normalized to clickable URL) ──
+    account_domain = (data.get("account_domain") or "").strip()
+    if account_domain and not re.match(r"^https?://", account_domain, flags=re.IGNORECASE):
+        account_domain = f"https://{account_domain}"
+    account_domain = account_domain or None
 
     # ── Assertions ──
     sorted_assertions = sorted(assertions, key=lambda x: x["net_score"] or 0, reverse=True)
@@ -188,7 +191,7 @@ def build_view_model(data: dict) -> dict:
         "site_id":        data["site_id"],
         "account_id":     data["account_id"],
         "company_name":   data["company_name"],
-        "source_url":     source_url,
+        "account_domain": account_domain,
         "linkedin_url":   data.get("linkedin_url"),
         # run details
         "total_assertions": len(assertions),

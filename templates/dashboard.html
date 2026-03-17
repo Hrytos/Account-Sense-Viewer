@@ -117,12 +117,12 @@
       <div class="label">Account ID</div>
       <div class="value">{{ view.account_id or "—" }}</div>
     </div>
-    {% if view.source_url %}
+    {% if view.account_domain %}
     <div class="metric-card">
       <div class="label">Website</div>
       <div class="value">
-        <a href="{{ view.source_url }}" target="_blank" rel="noopener">
-          {{ view.source_url }}
+        <a href="{{ view.account_domain }}" target="_blank" rel="noopener">
+          {{ view.account_domain }}
         </a>
       </div>
     </div>

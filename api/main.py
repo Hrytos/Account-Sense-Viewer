@@ -39,6 +39,7 @@ from src.services.ai_summarizer import (
     generate_company_overview,
     generate_assertion_summary,
 )
+from src.services.assertion_from_supabase import fetch_supporting_and_opposing
 
 load_dotenv()
 
@@ -154,6 +155,7 @@ def build_view_model(data: dict) -> dict:
     for i, a in enumerate(sorted_assertions):
         assertion_rows.append({
             "num":            i + 1,
+            "assertion_id":   a.get("assertion_id"),
             "assertion_text": a["assertion_text"],
             "assertion_type": a["assertion_type"],
             "support":        f"{a['supporting_score']:.2f}" if a["supporting_score"] is not None else "N/A",
@@ -211,6 +213,31 @@ def build_view_model(data: dict) -> dict:
         # assertions
         "assertion_rows": assertion_rows,
     }
+
+
+def _company_slug_candidates(company_name: str) -> list[str]:
+    import string
+
+    raw = (company_name or "").strip().lower()
+    if not raw:
+        return []
+
+    # Primary: lowercase, strip punctuation, spaces -> underscores
+    s1 = raw.translate(str.maketrans("", "", string.punctuation)).replace(" ", "_")
+
+    # Alternate: punctuation as separators -> underscores
+    s2 = re.sub(rf"[{re.escape(string.punctuation)}]+", " ", raw)
+    s2 = re.sub(r"\s+", "_", s2).strip("_")
+
+    # Alternate: punctuation -> underscores directly (then collapse)
+    s3 = re.sub(rf"[{re.escape(string.punctuation)}]+", "_", raw)
+    s3 = re.sub(r"_+", "_", s3).strip("_")
+
+    out: list[str] = []
+    for s in (s1, s2, s3):
+        if s and s not in out:
+            out.append(s)
+    return out
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -392,7 +419,13 @@ async def viewer(request: Request, site_id: Optional[str] = None):
         view["company_overview"] = f"Could not generate company overview: {e}"
 
     try:
-        view["assertion_summary"] = generate_assertion_summary(data["assertions"])
+        company_slug_candidates = _company_slug_candidates(data["company_name"])
+        company_slug = company_slug_candidates[0] if company_slug_candidates else ""
+        view["assertion_summary"] = generate_assertion_summary(
+            assertions=data["assertions"],
+            company_slug=company_slug,
+            site_id=site_id
+        )
     except Exception as e:
         view["assertion_summary"] = f"Could not generate assertion summary: {e}"
 
@@ -409,6 +442,43 @@ async def viewer(request: Request, site_id: Optional[str] = None):
             "sites": [],
         },
     )
+
+
+@app.get("/assertion-detail")
+async def assertion_detail(
+    request: Request,
+    site_id: str,
+    assertion_id: str,
+):
+    """
+    Return supporting and opposing markdown outputs for a given assertion.
+    Backed by Supabase Storage via src/services/assertion_files.py.
+    """
+    require_auth(request)
+
+    site_id = (site_id or "").strip()
+    assertion_id = (assertion_id or "").strip()
+    if not site_id or not assertion_id:
+        raise HTTPException(status_code=400, detail="Missing site_id or assertion_id.")
+
+    data = await get_site_data(site_id)
+    company_name = data.get("company_name", "")
+    if not company_name:
+        raise HTTPException(status_code=400, detail="Company name not found for site.")
+
+    slug_candidates = _company_slug_candidates(company_name)
+    if not slug_candidates:
+        raise HTTPException(status_code=400, detail="Company slug could not be derived.")
+
+    last_err: Exception | None = None
+    for slug in slug_candidates:
+        try:
+            return fetch_supporting_and_opposing(slug, site_id, assertion_id)
+        except Exception as e:
+            last_err = e
+            continue
+
+    raise HTTPException(status_code=404, detail=f"Assertion outputs not found: {last_err}")
 
 
 @app.post("/lookup", response_class=HTMLResponse)
@@ -485,7 +555,13 @@ async def lookup(
         view["company_overview"] = f"Could not generate company overview: {e}"
 
     try:
-        view["assertion_summary"] = generate_assertion_summary(data["assertions"])
+        company_slug_candidates = _company_slug_candidates(data["company_name"])
+        company_slug = company_slug_candidates[0] if company_slug_candidates else ""
+        view["assertion_summary"] = generate_assertion_summary(
+            assertions=data["assertions"],
+            company_slug=company_slug,
+            site_id=site_id
+        )
     except Exception as e:
         view["assertion_summary"] = f"Could not generate assertion summary: {e}"
 

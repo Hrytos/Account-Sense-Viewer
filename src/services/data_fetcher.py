@@ -51,7 +51,7 @@ async def list_sites_for_account(account_id: str) -> List[Dict]:
     def run_exec_sites():
         return (
             supabase.table("view_account_site_size")
-            .select("site_id, account_id, company_name, site_size_value, metadata")
+            .select("site_id, account_id, company_name, site_size_value")
             .eq("account_id", account_id)
             .execute()
         )
@@ -62,6 +62,9 @@ async def list_sites_for_account(account_id: str) -> List[Dict]:
     # Build assertion counts per site_id using a single IN query on site_ids
     assertion_counts: Dict[str, int] = {}
     site_ids = [row.get("site_id") for row in rows if row.get("site_id")]
+    
+    # Fetch full_address from account_sites table for all site_ids
+    address_map: Dict[str, str] = {}
     if site_ids:
         def run_exec_assertions():
             return (
@@ -70,25 +73,39 @@ async def list_sites_for_account(account_id: str) -> List[Dict]:
                 .in_("site_id", site_ids)
                 .execute()
             )
+        
+        def run_exec_addresses():
+            return (
+                supabase.table("account_sites")
+                .select("site_id, full_address")
+                .in_("site_id", site_ids)
+                .execute()
+            )
 
-        assertions_res = await asyncio.to_thread(run_exec_assertions)
+        assertions_res, addresses_res = await asyncio.gather(
+            asyncio.to_thread(run_exec_assertions),
+            asyncio.to_thread(run_exec_addresses),
+        )
+        
         for row in assertions_res.data or []:
             sid = row.get("site_id")
             if not sid:
                 continue
             assertion_counts[sid] = assertion_counts.get(sid, 0) + 1
+        
+        for row in addresses_res.data or []:
+            sid = row.get("site_id")
+            if sid:
+                address_map[sid] = row.get("full_address")
 
     sites: List[Dict] = []
     for row in rows:
-        metadata = row.get("metadata") or {}
-        full_address = None
-        if isinstance(metadata, dict):
-            full_address = metadata.get("full_address")
-
+        site_id = row.get("site_id")
+        full_address = address_map.get(site_id)
+        
         size_val = row.get("site_size_value")
         site_size_str = f"{size_val:,.0f} sq ft" if isinstance(size_val, (int, float)) else None
 
-        site_id = row.get("site_id")
         assertion_count = assertion_counts.get(site_id, 0)
 
         sites.append(
@@ -164,6 +181,7 @@ async def get_site_data(site_id: str) -> dict:
     for item in assertions_raw.data:
         detail = item["assertions"]
         assertions.append({
+            "assertion_id":     item.get("assertion_id"),
             "assertion_text":  detail["Assertion"],
             "assertion_type":  detail["assertion_type"],
             "supporting_score": item["supporting_score"],

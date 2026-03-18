@@ -122,33 +122,101 @@ Be factual and professional."""
     except Exception as e:
         return f"Error generating company overview: {str(e)}"
 
-def generate_assertion_summary(assertions):
+def generate_assertion_summary(assertions, company_slug, site_id):
     """
-    Generate a narrative summary of assertions.
+    Generate a narrative summary of SUPPORTED assertions with full evidence.
+    Focuses on STRONGLY/SUBSTANTIALLY/PARTIALLY SUPPORTED classifications,
+    prioritized by strength, and includes supporting/opposing markdown evidence.
     """
     try:
+        from src.services.assertion_from_supabase import fetch_supporting_and_opposing
+        
         client = get_openai_client()
         if not assertions:
             return "No assertions available to analyze."
         
-        prompt = f"Analyze the following {len(assertions)} assertions about a company and provide a narrative summary.\n\nASSERTIONS DATA:\n"
-        for i, assertion in enumerate(assertions, 1):
-            supporting = f"{assertion['supporting_score']:.2f}" if assertion['supporting_score'] is not None else 'N/A'
-            opposing = f"{assertion['opposing_score']:.2f}" if assertion['opposing_score'] is not None else 'N/A'
-            net = f"{assertion['net_score']:.2f}" if assertion['net_score'] is not None else 'N/A'
-            classification = assertion['classification'] or 'UNKNOWN'
-            prompt += f"{i}. [{assertion['assertion_type']}] {assertion['assertion_text']} (Support: {supporting}, Oppose: {opposing}, Net: {net}, Class: {classification})\n"
+        # Filter to supported classifications only
+        SUPPORTED_CLASSES = {
+            "STRONGLY SUPPORTED": 1,
+            "SUBSTANTIALLY SUPPORTED": 2,
+            "PARTIALLY SUPPORTED": 3
+        }
         
-        prompt += "\nProvide a concise narrative summary (5-7 sentences) covering key insights, patterns, and the overall picture."
+        supported = [
+            a for a in assertions
+            if (a.get("classification") or "").upper() in SUPPORTED_CLASSES
+        ]
+        
+        if not supported:
+            return "No supported assertions to analyze."
+        
+        # Sort by priority tier (STRONGLY → SUBSTANTIALLY → PARTIALLY), then net_score descending
+        supported.sort(key=lambda a: (
+            SUPPORTED_CLASSES.get((a.get("classification") or "").upper(), 999),
+            -(a.get("net_score") or 0)
+        ))
+        
+        # Fetch markdown evidence for each assertion
+        for assertion in supported:
+            assertion_id = assertion.get("assertion_id")
+            if assertion_id:
+                try:
+                    md = fetch_supporting_and_opposing(company_slug, site_id, assertion_id)
+                    assertion["supporting_md"] = md.get("supporting", "(Evidence not available)")
+                    assertion["opposing_md"] = md.get("opposing", "(Evidence not available)")
+                except Exception:
+                    assertion["supporting_md"] = "(Evidence not available)"
+                    assertion["opposing_md"] = "(Evidence not available)"
+            else:
+                assertion["supporting_md"] = "(No assertion_id - evidence not available)"
+                assertion["opposing_md"] = "(No assertion_id - evidence not available)"
+        
+        # Build enhanced prompt with full evidence
+        prompt = """You are a logic analyst specializing in summarizing and finding patterns in the given information.
+
+Analyze the following SUPPORTED assertions about a company. Focus on:
+1. The strength of evidence for each assertion
+2. Patterns across multiple assertions
+
+
+SUPPORTED ASSERTIONS (prioritized by classification strength):
+
+"""
+        
+        for i, assertion in enumerate(supported, 1):
+            supporting_score = f"{assertion['supporting_score']:.2f}" if assertion.get('supporting_score') is not None else 'N/A'
+            opposing_score = f"{assertion['opposing_score']:.2f}" if assertion.get('opposing_score') is not None else 'N/A'
+            net_score = f"{assertion['net_score']:.2f}" if assertion.get('net_score') is not None else 'N/A'
+            classification = assertion.get('classification') or 'UNKNOWN'
+            assertion_text = assertion.get('assertion_text') or ''
+            
+            prompt += f"""---
+ASSERTION #{i} - {classification}
+Statement: {assertion_text}
+Scores: Support={supporting_score}, Oppose={opposing_score}, Net={net_score}
+
+SUPPORTING EVIDENCE:
+{assertion.get('supporting_md', '(Not available)')}
+
+OPPOSING EVIDENCE:
+{assertion.get('opposing_md', '(Not available)')}
+---
+
+"""
+        
+        prompt += """Provide a concise narrative summary (5-7 sentences) that:
+- Highlights the strongest supported capabilities
+- Synthesizes patterns across assertions
+- Stays grounded in the provided evidence"""
         
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are a data analyst specializing in evidence-based assessment."},
+                {"role": "system", "content": "You are a logic analyst specializing in summarizing and finding patterns in the given information."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
-            max_tokens=250
+            max_tokens=500
         )
         return response.choices[0].message.content
     except Exception as e:

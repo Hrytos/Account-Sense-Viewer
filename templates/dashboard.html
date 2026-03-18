@@ -309,7 +309,7 @@
       </thead>
       <tbody>
         {% for row in view.assertion_rows %}
-        <tr class="assertion-row" data-assertion-id="{{ row.assertion_id }}">
+        <tr class="assertion-row" data-assertion-id="{{ row.assertion_id }}" data-assertion-text="{{ row.assertion_text }}">
           <td>{{ row.num }}</td>
           <td>{{ row.assertion_text }}</td>
           <td>{{ row.assertion_type }}</td>
@@ -335,6 +335,10 @@
       </div>
       <div class="modal-body">
         <div id="assertion-modal-status" class="modal-status"></div>
+        <div id="assertion-text-section" class="assertion-text-section">
+          <div class="assertion-text-label">Assertion:</div>
+          <div id="assertion-text-content" class="assertion-text-content"></div>
+        </div>
         <div class="modal-columns">
           <div class="modal-col">
             <div class="modal-col-title">Supporting</div>
@@ -418,6 +422,26 @@
   .modal-close:hover { color: rgba(255,255,255,0.95); }
   .modal-body { padding: 14px 16px 18px; }
   .modal-status { color: rgba(255,255,255,0.7); margin-bottom: 10px; }
+  .assertion-text-section {
+    margin-bottom: 16px;
+    padding: 14px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+  }
+  .assertion-text-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .assertion-text-content {
+    font-size: 15px;
+    line-height: 1.5;
+    color: rgba(255,255,255,0.95);
+  }
   .modal-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   @media (max-width: 900px) { .modal-columns { grid-template-columns: 1fr; } }
   .modal-col { border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; overflow: hidden; }
@@ -482,6 +506,7 @@
     const modal = document.getElementById("assertion-modal");
     const btnClose = document.getElementById("assertion-modal-close");
     const statusEl = document.getElementById("assertion-modal-status");
+    const assertionTextEl = document.getElementById("assertion-text-content");
     const supportingEl = document.getElementById("assertion-modal-supporting");
     const opposingEl = document.getElementById("assertion-modal-opposing");
 
@@ -514,9 +539,11 @@
     rows.forEach((row) => {
       row.addEventListener("click", async () => {
         const assertionId = row.getAttribute("data-assertion-id");
+        const assertionText = row.getAttribute("data-assertion-text");
         if (!assertionId || assertionId === "None" || !siteId) return;
 
         statusEl.textContent = "Loading…";
+        assertionTextEl.textContent = assertionText || "No assertion text available";
         supportingEl.innerHTML = "";
         opposingEl.innerHTML = "";
         openModal();

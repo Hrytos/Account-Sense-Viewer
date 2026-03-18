@@ -53,6 +53,7 @@ class AssertionFilesClient:
         variant: Literal["supporting", "opposing"],
     ) -> str:
         key = self._build_key(company_slug, site_id, assertion_id, variant)
+        print(f"[AssertionFiles] Fetching {variant} evidence from bucket '{self.bucket}': {key}")
         data = self.supabase.storage.from_(self.bucket).download(key)
         if isinstance(data, bytes):
             return data.decode("utf-8")
@@ -74,6 +75,20 @@ def fetch_supporting_and_opposing(
     site_id: str,
     assertion_id: str,
 ) -> Dict[str, str]:
+    # Hardcoded slug overrides for specific site_ids
+    SITE_SLUG_OVERRIDES = {
+        "8ee0c462-d914-4d12-8085-c56986450221": "bda",
+        "92000d6f-7321-434d-8ad0-cde1575c3c5b": "saltbox_ga",
+        "6b7d2d8f-87bb-440a-8c3c-feac52f42fe2": "advance_auto_parts",
+        "7ac021d3-62cb-4637-a42d-4835780fbd29": "leonard_s_express",
+        "600a9c42-cc7c-4f85-830a-d035d8e97a93": "empire_office",
+        "6791cf4f-87e8-4bfa-addb-105dee089966": "mclane_company",
+    }
+    
+    # Override slug if site_id has a hardcoded mapping
+    if site_id in SITE_SLUG_OVERRIDES:
+        company_slug = SITE_SLUG_OVERRIDES[site_id]
+    
     client = get_assertion_files_client()
     supporting_md = client.fetch_markdown(company_slug, site_id, assertion_id, "supporting")
     opposing_md = client.fetch_markdown(company_slug, site_id, assertion_id, "opposing")

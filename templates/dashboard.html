@@ -288,7 +288,7 @@
   {% if view.assertion_summary %}
   <div class="ai-card">
     <div class="ai-card-title">📊 Assertion Analysis Summary</div>
-    {{ view.assertion_summary }}
+    <div id="assertion-summary-content" class="markdown-content">{{ view.assertion_summary }}</div>
   </div>
   {% endif %}
 
@@ -397,7 +397,7 @@
     padding: 24px; z-index: 9999;
   }
   .modal-card {
-    width: min(1400px, 96vw);
+    width: min(1200px, 90vw);
     max-height: 90vh;
     overflow: auto;
     border-radius: 16px;
@@ -426,6 +426,8 @@
     margin: 0; padding: 16px; overflow-y: auto; max-height: 70vh;
     font-size: 14px; line-height: 1.6;
   }
+  .modal-content::-webkit-scrollbar { display: none; }
+  .modal-content { -ms-overflow-style: none; scrollbar-width: none; }
   .modal-content h1 { font-size: 1.5em; margin: 1em 0 0.5em; font-weight: 700; }
   .modal-content h2 { font-size: 1.3em; margin: 1em 0 0.5em; font-weight: 700; }
   .modal-content h3 { font-size: 1.1em; margin: 1em 0 0.5em; font-weight: 700; }
@@ -445,6 +447,32 @@
   .modal-content strong { font-weight: 700; }
   .modal-content em { font-style: italic; }
   .modal-content blockquote {
+    border-left: 3px solid rgba(255,255,255,0.2);
+    padding-left: 12px; margin: 0.5em 0; color: rgba(255,255,255,0.7);
+  }
+  
+  .markdown-content {
+    font-size: 14px; line-height: 1.6;
+  }
+  .markdown-content h1 { font-size: 1.5em; margin: 1em 0 0.5em; font-weight: 700; }
+  .markdown-content h2 { font-size: 1.3em; margin: 1em 0 0.5em; font-weight: 700; }
+  .markdown-content h3 { font-size: 1.1em; margin: 1em 0 0.5em; font-weight: 700; }
+  .markdown-content p { margin: 0.5em 0; }
+  .markdown-content ul, .markdown-content ol { margin: 0.5em 0; padding-left: 1.5em; }
+  .markdown-content li { margin: 0.3em 0; }
+  .markdown-content pre { 
+    background: rgba(0,0,0,0.3); padding: 12px; border-radius: 6px; 
+    overflow-x: auto; font-size: 12px; margin: 0.5em 0;
+  }
+  .markdown-content code {
+    background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 3px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.9em;
+  }
+  .markdown-content pre code { background: none; padding: 0; }
+  .markdown-content strong { font-weight: 700; }
+  .markdown-content em { font-style: italic; }
+  .markdown-content blockquote {
     border-left: 3px solid rgba(255,255,255,0.2);
     padding-left: 12px; margin: 0.5em 0; color: rgba(255,255,255,0.7);
   }
@@ -530,6 +558,35 @@
         }
       });
     });
+  })();
+
+  // Render assertion summary markdown on page load
+  (function () {
+    const summaryEl = document.getElementById("assertion-summary-content");
+    if (!summaryEl) return;
+    
+    const rawText = summaryEl.textContent;
+    
+    function renderMarkdown(md) {
+      if (!md) return "";
+      return md
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+        .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+        .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/```json\n([\s\S]*?)\n```/g, '<pre><code>$1</code></pre>')
+        .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/^\- (.*$)/gim, '<li>$1</li>')
+        .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/^(?!<[hup])/gim, '<p>')
+        .replace(/(?<![>])\n/g, '<br>');
+    }
+    
+    summaryEl.innerHTML = renderMarkdown(rawText);
   })();
 </script>
 {% endblock %}

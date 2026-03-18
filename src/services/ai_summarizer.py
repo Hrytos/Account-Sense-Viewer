@@ -172,11 +172,16 @@ def generate_assertion_summary(assertions, company_slug, site_id):
                 assertion["opposing_md"] = "(No assertion_id - evidence not available)"
         
         # Build enhanced prompt with full evidence
-        prompt = """You are a logic analyst specializing in summarizing and finding patterns in the given information.
+        prompt = """Persona: You are an expert warehouse automation advisor.
 
-Analyze the following SUPPORTED assertions about a company. Focus on:
-1. The strength of evidence for each assertion
-2. Patterns across multiple assertions
+
+Input data description: You are given the following inputs: set of statements about a warehouse, opinion classification for each statement (strongly supported, substantially supported, partially supported, weakly supported, not supported and contested), supporting arguments with evidence and opposing arguments with evidence.
+
+
+Task: Your job is to determine the following:
+Is this warehouse a good candidate for Autonomous Tuggers? Give specific reasons by referencing only the input data. Strictly consider only those statements where opinion classification is strongly supported, substantially supported and partially supported - in that order. 
+If yes to the above, what are the top 3 key drivers and top 3 risks for a successful sale of autonomous tugger. Do not give generic answers, refer only to the input data provided. If no, ignore.
+
 
 
 SUPPORTED ASSERTIONS (prioritized by classification strength):
@@ -204,19 +209,13 @@ OPPOSING EVIDENCE:
 
 """
         
-        prompt += """Provide a concise narrative summary (5-7 sentences) that:
-- Highlights the strongest supported capabilities
-- Synthesizes patterns across assertions
-- Stays grounded in the provided evidence"""
-        
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are a logic analyst specializing in summarizing and finding patterns in the given information."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.7,
-            max_tokens=500
+            temperature=0.5,
         )
         return response.choices[0].message.content
     except Exception as e:

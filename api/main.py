@@ -58,7 +58,11 @@ app.add_middleware(
 
 # Static files & templates — paths relative to project root
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
+_static_dir = os.path.join(BASE_DIR, "static")
+# Vercel often serves `static/` via the static build only; the Python bundle may omit
+# the folder, which would make StaticFiles raise at import and break the whole app.
+if os.path.isdir(_static_dir):
+    app.mount("/static", StaticFiles(directory=_static_dir), name="static")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 # ── Auth helpers ───────────────────────────────────────────────────────────────
@@ -249,7 +253,7 @@ def _company_slug_candidates(company_name: str) -> list[str]:
 async def login_page(request: Request):
     if request.session.get("authenticated"):
         return RedirectResponse("/dashboard", status_code=302)
-    return templates.TemplateResponse("login.html", {"request": request, "error": None})
+    return templates.TemplateResponse(request, "login.html", {"error": None})
 
 
 @app.post("/login", response_class=HTMLResponse)
@@ -264,8 +268,9 @@ async def login(
         request.session["username"] = username
         return RedirectResponse("/dashboard", status_code=302)
     return templates.TemplateResponse(
+        request,
         "login.html",
-        {"request": request, "error": "Invalid username or password"},
+        {"error": "Invalid username or password"},
         status_code=401,
     )
 
@@ -292,9 +297,9 @@ async def dashboard(request: Request, account_id: Optional[str] = None):
         sites = await list_sites_for_account(account_id)
 
     return templates.TemplateResponse(
+        request,
         "dashboard.html",
         {
-            "request": request,
             "view": None,
             "error": None,
             "site_id": "",
@@ -327,9 +332,9 @@ async def select_company(
     if not account_id:
         # Company name not found – show error but keep what user typed
         return templates.TemplateResponse(
+            request,
             "dashboard.html",
             {
-                "request": request,
                 "view": None,
                 "error": f'No company found matching "{company_name}".',
                 "site_id": "",
@@ -343,9 +348,9 @@ async def select_company(
     sites = await list_sites_for_account(account_id)
 
     return templates.TemplateResponse(
+        request,
         "dashboard.html",
         {
-            "request": request,
             "view": None,
             "error": None,
             "site_id": "",
@@ -371,9 +376,9 @@ async def viewer(request: Request, site_id: Optional[str] = None):
     if not site_id:
         # No site_id provided — show empty state
         return templates.TemplateResponse(
+            request,
             "dashboard.html",
             {
-                "request": request,
                 "view": None,
                 "error": "No site_id provided in URL. Use /viewer?site_id=YOUR_SITE_ID",
                 "site_id": "",
@@ -393,9 +398,9 @@ async def viewer(request: Request, site_id: Optional[str] = None):
         if "403" in error_msg or "Forbidden" in error_msg:
             error_msg = "403 Forbidden — check Supabase RLS policies and your service_role key."
         return templates.TemplateResponse(
+            request,
             "dashboard.html",
             {
-                "request": request,
                 "view": None,
                 "error": error_msg,
                 "site_id": site_id,
@@ -433,9 +438,9 @@ async def viewer(request: Request, site_id: Optional[str] = None):
         view["assertion_summary"] = f"Could not generate assertion summary: {e}"
 
     return templates.TemplateResponse(
+        request,
         "dashboard.html",
         {
-            "request": request,
             "view": view,
             "error": None,
             "site_id": site_id,
@@ -536,9 +541,9 @@ async def lookup(
                 break
     if not site_id:
         return templates.TemplateResponse(
+            request,
             "dashboard.html",
             {
-                "request": request,
                 "view": None,
                 "error": "Please enter a Site ID.",
                 "site_id": "",
@@ -556,9 +561,9 @@ async def lookup(
         if "403" in error_msg or "Forbidden" in error_msg:
             error_msg = "403 Forbidden — check Supabase RLS policies and your service_role key."
         return templates.TemplateResponse(
+            request,
             "dashboard.html",
             {
-                "request": request,
                 "view": None,
                 "error": error_msg,
                 "site_id": site_id,
@@ -596,9 +601,9 @@ async def lookup(
         view["assertion_summary"] = f"Could not generate assertion summary: {e}"
 
     return templates.TemplateResponse(
+        request,
         "dashboard.html",
         {
-            "request": request,
             "view": view,
             "error": None,
             "site_id": site_id,

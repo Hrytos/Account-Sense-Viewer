@@ -224,6 +224,38 @@
     </div>
   </div>
 
+  {# Operations report teaser (client-side fetch + regenerate) #}
+  <div
+    class="ai-card teaser-card"
+    id="operations-teaser-card"
+    data-site-id="{{ view.site_id }}"
+  >
+    <div class="teaser-card-head">
+      <div class="ai-card-title">🎬 Operations report teaser</div>
+    </div>
+    <div id="operations-teaser-status" class="teaser-status" aria-live="polite"></div>
+    <div id="operations-teaser-list" class="teaser-list"></div>
+    <div class="teaser-card-actions" id="operations-teaser-actions">
+      <button
+        type="button"
+        class="btn btn-primary btn-small"
+        id="operations-teaser-regen"
+        disabled
+        aria-busy="false"
+      >
+        Regenerate
+      </button>
+      <button
+        type="button"
+        class="btn btn-ghost btn-small"
+        id="operations-teaser-copy-all"
+        disabled
+      >
+        Copy
+      </button>
+    </div>
+  </div>
+
   {# Nature of Operations #}
   <div class="subsection-title">Nature of Operations</div>
   {% if view.operational_rows %}
@@ -614,6 +646,105 @@
     }
     
     summaryEl.innerHTML = renderMarkdown(rawText);
+  })();
+
+  (function () {
+    const card = document.getElementById("operations-teaser-card");
+    const regenBtn = document.getElementById("operations-teaser-regen");
+    const copyBtn = document.getElementById("operations-teaser-copy-all");
+    const statusEl = document.getElementById("operations-teaser-status");
+    const listEl = document.getElementById("operations-teaser-list");
+    if (!card || !regenBtn || !copyBtn || !statusEl || !listEl) return;
+
+    const siteId = (card.getAttribute("data-site-id") || "").trim();
+    if (!siteId) return;
+
+    function setLoading(isLoading, message) {
+      regenBtn.disabled = isLoading;
+      copyBtn.disabled = isLoading || !listEl.querySelector(".teaser-text");
+      regenBtn.setAttribute("aria-busy", isLoading ? "true" : "false");
+      if (message !== undefined) statusEl.textContent = message;
+    }
+
+    function copyAllText() {
+      const parts = [];
+      listEl.querySelectorAll(".teaser-text").forEach(function (el) {
+        parts.push(el.textContent);
+      });
+      return parts.join("\n\n");
+    }
+
+    function renderTeaserItems(items) {
+      listEl.innerHTML = "";
+      items.forEach(function (text) {
+        const row = document.createElement("div");
+        row.className = "teaser-item";
+        const p = document.createElement("p");
+        p.className = "teaser-text";
+        p.textContent = text;
+        row.appendChild(p);
+        listEl.appendChild(row);
+      });
+      copyBtn.disabled = items.length === 0;
+    }
+
+    copyBtn.addEventListener("click", function () {
+      const text = copyAllText();
+      if (!text) return;
+      var btn = copyBtn;
+      navigator.clipboard.writeText(text).then(function () {
+        var orig = btn.textContent;
+        btn.textContent = "Copied!";
+        setTimeout(function () { btn.textContent = orig; }, 1600);
+      }).catch(function () {
+        var orig = btn.textContent;
+        btn.textContent = "Failed";
+        setTimeout(function () { btn.textContent = orig; }, 1600);
+      });
+    });
+
+    async function loadTeasers(isRegenerate) {
+      setLoading(true, isRegenerate ? "Regenerating teaser…" : "Loading teaser…");
+      copyBtn.disabled = true;
+      listEl.innerHTML = "";
+      try {
+        var url = "/api/site/" + encodeURIComponent(siteId) + "/operations-teaser";
+        var resp = await fetch(url, { credentials: "same-origin", headers: { Accept: "application/json" } });
+        if (resp.status === 404) {
+          statusEl.textContent = "No operations report is available for this site yet.";
+          copyBtn.disabled = true;
+          return;
+        }
+        if (!resp.ok) {
+          var errMsg = resp.statusText;
+          try {
+            var j = await resp.json();
+            if (j && j.detail) errMsg = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail);
+          } catch (ignore) {}
+          throw new Error(errMsg);
+        }
+        var data = await resp.json();
+        var teaser = data.teaser || data.teasers || [];
+        if (!teaser.length) {
+          statusEl.textContent = "No teaser returned.";
+          copyBtn.disabled = true;
+          return;
+        }
+        statusEl.textContent = "";
+        renderTeaserItems(teaser);
+      } catch (err) {
+        statusEl.textContent = "Could not load teaser: " + (err && err.message ? err.message : String(err));
+        copyBtn.disabled = true;
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    regenBtn.addEventListener("click", function () {
+      loadTeasers(true);
+    });
+
+    loadTeasers(false);
   })();
 </script>
 {% endblock %}

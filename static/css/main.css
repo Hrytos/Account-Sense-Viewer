@@ -77,6 +77,14 @@ a:hover { text-decoration: underline; }
   border: 1px solid var(--border);
 }
 .btn-ghost:hover { background: rgba(255,255,255,0.05); color: var(--text); text-decoration: none; }
+.btn-small {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 
 /* ── Forms ────────────────────────────────────────────────────────────────── */
 input[type="text"],
@@ -246,6 +254,51 @@ tbody tr:hover td { background: rgba(255,255,255,0.025); }
   letter-spacing: 0.06em;
   color: var(--accent);
   margin-bottom: 0.5rem;
+}
+
+.teaser-card-head {
+  margin-bottom: 0.65rem;
+}
+.teaser-card-head .ai-card-title {
+  margin-bottom: 0;
+}
+.teaser-card-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-soft);
+}
+.teaser-card-actions .btn {
+  min-height: 2.25rem;
+}
+.teaser-status {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-bottom: 0.65rem;
+  min-height: 1.25em;
+}
+.teaser-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.teaser-item {
+  padding: 0.75rem 0.85rem;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+}
+.teaser-text {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* ── Search bar (dashboard) ───────────────────────────────────────────────── */

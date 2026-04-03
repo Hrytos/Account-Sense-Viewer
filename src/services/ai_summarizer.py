@@ -3,7 +3,12 @@ AI Summarizer Service
 Consolidated AI logic for generating account, company, and assertion summaries.
 """
 
+import json
+from typing import Any, Dict, List
+
 from src.core.clients import get_openai_client
+from src.services.report_metadata import build_teaser_context_lines
+
 
 def generate_account_summary(data):
     """
@@ -220,3 +225,73 @@ OPPOSING EVIDENCE:
         return response.choices[0].message.content
     except Exception as e:
         return f"Error generating assertion summary: {str(e)}"
+
+
+def generate_operations_teaser_variations(metadata: Dict[str, Any]) -> List[str]:
+    """
+    Produce 3–5 short, distinct teaser lines for the operations report.
+    Hooks attention; does not replace reading the full report.
+    """
+    lines = build_teaser_context_lines(metadata)
+    context = "\n".join(lines).strip()
+    if not context:
+        raise ValueError("No teaser context available from report metadata.")
+
+    system = (
+        "You write concise executive-facing copy for warehouse and logistics leaders. "
+        "Audience includes VPs and Directors of Operations/Supply Chain/Fulfillment. "
+        "Stay factual: only use claims supported by the supplied context."
+    )
+    user = f"""Using ONLY the context below, follow these steps and output the final result as JSON.
+
+**Step 1 - Extract risks**: From the context, identify all risk and observation statements.
+
+**Step 2 - Rank risks**: Rank all extracted risks in descending order of operational severity. Select any one of the top 3 ranked risks randomly to anchor the teaser. 
+
+**Step 3 - Write teaser**: Using the selected risk as the central theme, write 1 teaser that alludes to that risk while spelling it out completely, creating tension that pulls the reader into the full report.
+
+Requirements for the teaser:
+- **Goal**: Capture attention so the reader wants to open the full report, like a formal movie trailer, not a summary. Imply stakes or tension; its okay to list the risk in the teaser.
+- **Length**: About 2 to 3 sentences, or roughly 40 to 50 words.
+- **Tone**: Professional and punchy; curiosity without clickbait or hype; no jargon walls. Do not use em dashes.
+- **Ending**: Must end with a direct, forward-pulling sentence that moves the reader to open the report. Examples of the right register: "This report separates what's working from what's quietly compounding." or "This report breaks down where [site] stands operationally and what the data says about the path forward."
+
+Return **only** valid JSON: {{"teaser": "..."}}
+
+Context:
+{context}"""
+
+    client = get_openai_client()
+    last_err: Exception | None = None
+    for attempt in range(2):
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.85 if attempt == 0 else 0.9,
+                max_tokens=900,
+            )
+            raw = (response.choices[0].message.content or "").strip()
+            data = json.loads(raw)
+            single = data.get("teaser")
+            if isinstance(single, str) and single.strip():
+                return [single.strip()]
+            alt = data.get("teasers")
+            if not isinstance(alt, list):
+                alt = []
+            out: List[str] = []
+            for t in alt:
+                if isinstance(t, str) and t.strip():
+                    out.append(t.strip())
+            if len(out) >= 1:
+                return out[:5]
+            last_err = ValueError("Model returned no teaser text.")
+        except Exception as e:
+            last_err = e
+            continue
+
+    raise last_err if last_err else RuntimeError("Could not generate teaser variations.")

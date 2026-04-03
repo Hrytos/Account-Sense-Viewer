@@ -8,6 +8,7 @@ Routes:
     GET  /dashboard → main app page (requires auth)
     GET  /viewer    → direct viewer with site_id in URL (?site_id=12345)
     POST /lookup    → fetch site data + AI summaries, return rendered dashboard
+    GET  /api/site/{site_id}/operations-teaser → JSON { "teaser": string[] } (auth)
 
 Usage (local):
     uvicorn api.main:app --reload --app-dir .
@@ -20,7 +21,7 @@ from typing import Optional
 from urllib.parse import quote_plus
 
 from fastapi import FastAPI, Request, Form, Depends, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
@@ -34,10 +35,12 @@ from src.services.data_fetcher import (
     list_companies,
     list_sites_for_account,
 )
+from src.services.report_metadata import fetch_latest_report_metadata
 from src.services.ai_summarizer import (
     generate_account_summary,
     generate_company_overview,
     generate_assertion_summary,
+    generate_operations_teaser_variations,
 )
 from src.services.assertion_from_supabase import fetch_supporting_and_opposing
 
@@ -479,6 +482,33 @@ async def assertion_detail(
             continue
 
     raise HTTPException(status_code=404, detail=f"Assertion outputs not found: {last_err}")
+
+
+@app.get("/api/site/{site_id}/operations-teaser")
+async def operations_teaser(request: Request, site_id: str):
+    """
+    Return teaser strings for the latest operations report metadata
+    for this site (from account_sites_report). Requires session auth.
+    """
+    require_auth(request)
+    site_id = (site_id or "").strip()
+    if not site_id:
+        raise HTTPException(status_code=400, detail="Missing site_id.")
+
+    metadata = await fetch_latest_report_metadata(site_id)
+    if not metadata:
+        return JSONResponse({"teaser": []}, status_code=404)
+
+    sections = metadata.get("sections")
+    if not sections:
+        return JSONResponse({"teaser": []}, status_code=404)
+
+    try:
+        teaser = generate_operations_teaser_variations(metadata)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+
+    return {"teaser": teaser}
 
 
 @app.post("/lookup", response_class=HTMLResponse)

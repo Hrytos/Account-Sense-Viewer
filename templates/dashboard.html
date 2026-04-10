@@ -1,16 +1,11 @@
-{% extends "base.html" %}
-{% block title %}Dashboard — Account Sense Viewer{% endblock %}
-
-{% block body %}
-
-{# ── Top nav ── #}
+{% extends "base.html" %} {% block title %}Dashboard — Account Sense Viewer{%
+endblock %} {% block body %} {# ── Top nav ── #}
 <nav class="topbar">
   <div class="topbar-brand">📊 Account Sense Viewer <span>Dashboard</span></div>
   <a href="/logout" class="btn btn-ghost">🚪 Logout</a>
 </nav>
 
 <div class="page-wrap">
-
   {# ── Company selection search bar ── #}
   <form method="post" action="/select-company" class="search-bar">
     <div class="search-wrapper">
@@ -24,32 +19,36 @@
       />
       <div id="company-suggestions" class="company-suggestions">
         {% for c in companies or [] %}
-        <div class="company-suggestion" data-name="{{ c.company_name }}">{{ c.company_name }}</div>
+        <div class="company-suggestion" data-name="{{ c.company_name }}">
+          {{ c.company_name }}
+        </div>
         {% endfor %}
       </div>
     </div>
     <button type="submit" class="btn btn-primary">Show Sites</button>
   </form>
 
-  {# ── Error ── #}
-  {% if error %}
+  {# ── Error ── #} {% if error %}
   <div class="alert alert-error">{{ error }}</div>
-  {% endif %}
-
-  {# ── Site selection grid (when a company is chosen) ── #}
-  {% if sites %}
+  {% endif %} {# ── Site selection grid (when a company is chosen) ── #} {% if
+  sites %}
   <div class="section-header">
-    <span>📍</span><h2>Select a Site</h2>
+    <span>📍</span>
+    <h2>Select a Site</h2>
   </div>
   <div class="site-card-grid">
     {% for s in sites %}
     <div class="site-card">
       <div class="site-card-title">{{ s.company_name }}</div>
-      <div class="site-card-address">{{ s.full_address or "Address not available" }}</div>
+      <div class="site-card-address">
+        {{ s.full_address or "Address not available" }}
+      </div>
       <div class="site-card-meta">
         <div class="site-card-meta-row">
           <span class="meta-label">Size</span>
-          <span class="meta-value">{{ s.site_size_str or "Not available" }}</span>
+          <span class="meta-value"
+            >{{ s.site_size_str or "Not available" }}</span
+          >
         </div>
         <div class="site-card-meta-row">
           <span class="meta-label">Assertions</span>
@@ -63,25 +62,25 @@
       <form method="post" action="/lookup">
         <input type="hidden" name="site_id" value="{{ s.site_id }}" />
         <input type="hidden" name="account_id" value="{{ s.account_id }}" />
-        <button type="submit" class="btn btn-primary btn-small">View details →</button>
+        <button type="submit" class="btn btn-primary btn-small">
+          View details →
+        </button>
       </form>
     </div>
     {% endfor %}
   </div>
-  {% endif %}
-
-  {# ── Empty state (no data yet) ── #}
-  {% if not view %}
-  <div class="empty-state" style="padding: 4rem 1rem;">
+  {% endif %} {# ── Empty state (no data yet) ── #} {% if not view %}
+  <div class="empty-state" style="padding: 4rem 1rem">
     Select or search for a company above to see its sites.
   </div>
 
-  {% else %}
-  {# ════════════════════════════════════════════════════════════════════════ #}
-  {# RUN DETAILS                                                              #}
-  {# ════════════════════════════════════════════════════════════════════════ #}
+  {% else %} {#
+  ════════════════════════════════════════════════════════════════════════ #} {#
+  RUN DETAILS #} {#
+  ════════════════════════════════════════════════════════════════════════ #}
   <div class="section-header">
-    <span>🕐</span><h2>Run Details</h2>
+    <span>🕐</span>
+    <h2>Run Details</h2>
   </div>
   <div class="metric-grid">
     <div class="metric-card">
@@ -99,10 +98,11 @@
   </div>
 
   {# ════════════════════════════════════════════════════════════════════════ #}
-  {# ACCOUNT SUMMARY                                                          #}
-  {# ════════════════════════════════════════════════════════════════════════ #}
+  {# ACCOUNT SUMMARY #} {#
+  ════════════════════════════════════════════════════════════════════════ #}
   <div class="section-header">
-    <span>🏢</span><h2>Account Summary</h2>
+    <span>🏢</span>
+    <h2>Account Summary</h2>
   </div>
   <div class="metric-grid">
     <div class="metric-card">
@@ -131,58 +131,64 @@
       <div class="label">LinkedIn</div>
       <div class="value">
         {% if view.linkedin_url %}
-          <a href="{{ view.linkedin_url }}" target="_blank" rel="noopener">
-            View {{ view.company_name }} on LinkedIn
-          </a>
-        {% else %}
-          None
-        {% endif %}
+        <a href="{{ view.linkedin_url }}" target="_blank" rel="noopener">
+          View {{ view.company_name }} on LinkedIn
+        </a>
+        {% else %} None {% endif %}
       </div>
     </div>
   </div>
 
-  {# AI Summary #}
-  {% if view.ai_summary %}
+  {# AI Summary #} {% if view.ai_summary %}
   <div class="ai-card">
     <div class="ai-card-title">🤖 AI-Generated Summary</div>
     {{ view.ai_summary }}
   </div>
-  {% endif %}
-
-  {# About the Company #}
-  {% if view.company_overview %}
+  {% endif %} {# About the Company #} {% if view.company_overview %}
   <div class="ai-card">
     <div class="ai-card-title">ℹ️ About the Company</div>
     {{ view.company_overview }}
   </div>
-  {% endif %}
-
-  {# Financials #}
+  {% endif %} {# Financials #}
   <div class="subsection-title">Financials</div>
   {% if view.finance_rows %}
   <div class="table-wrapper">
     <table class="table-col-30">
-      <thead><tr><th>Type</th><th>Value</th></tr></thead>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Value</th>
+        </tr>
+      </thead>
       <tbody>
         {% for row in view.finance_rows %}
-        <tr><td>{{ row.Type }}</td><td>{{ row.Value }}</td></tr>
+        <tr>
+          <td>{{ row.Type }}</td>
+          <td>{{ row.Value }}</td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
   {% else %}
   <div class="empty-state">No financial data available</div>
-  {% endif %}
-
-  {# Key Business Activities #}
+  {% endif %} {# Key Business Activities #}
   <div class="subsection-title">Key Business Activities</div>
   {% if view.business_rows %}
   <div class="table-wrapper">
     <table class="table-col-30">
-      <thead><tr><th>Activity Type</th><th>Details</th></tr></thead>
+      <thead>
+        <tr>
+          <th>Activity Type</th>
+          <th>Details</th>
+        </tr>
+      </thead>
       <tbody>
         {% for row in view.business_rows %}
-        <tr><td>{{ row["Activity Type"] }}</td><td>{{ row.Details }}</td></tr>
+        <tr>
+          <td>{{ row["Activity Type"] }}</td>
+          <td>{{ row.Details }}</td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>
@@ -194,10 +200,11 @@
   <hr class="divider" />
 
   {# ════════════════════════════════════════════════════════════════════════ #}
-  {# SITE SUMMARY                                                             #}
-  {# ════════════════════════════════════════════════════════════════════════ #}
+  {# SITE SUMMARY #} {#
+  ════════════════════════════════════════════════════════════════════════ #}
   <div class="section-header">
-    <span>📍</span><h2>Site Summary</h2>
+    <span>📍</span>
+    <h2>Site Summary</h2>
   </div>
   <div class="metric-grid">
     <div class="metric-card">
@@ -233,7 +240,11 @@
     <div class="teaser-card-head">
       <div class="ai-card-title">🎬 Operations report teaser</div>
     </div>
-    <div id="operations-teaser-status" class="teaser-status" aria-live="polite"></div>
+    <div
+      id="operations-teaser-status"
+      class="teaser-status"
+      aria-live="polite"
+    ></div>
     <div id="operations-teaser-list" class="teaser-list"></div>
     <div class="teaser-card-actions" id="operations-teaser-actions">
       <button
@@ -261,44 +272,64 @@
   {% if view.operational_rows %}
   <div class="table-wrapper">
     <table class="table-col-30">
-      <thead><tr><th>Operation Type</th><th>Details</th></tr></thead>
+      <thead>
+        <tr>
+          <th>Operation Type</th>
+          <th>Details</th>
+        </tr>
+      </thead>
       <tbody>
         {% for row in view.operational_rows %}
-        <tr><td>{{ row["Operation Type"] }}</td><td>{{ row.Details }}</td></tr>
+        <tr>
+          <td>{{ row["Operation Type"] }}</td>
+          <td>{{ row.Details }}</td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
   {% else %}
   <div class="empty-state">No operational data available</div>
-  {% endif %}
-
-  {# Customers #}
+  {% endif %} {# Customers #}
   <div class="subsection-title">Customers</div>
   {% if view.customer_rows %}
   <div class="table-wrapper">
     <table class="table-col-30">
-      <thead><tr><th>Type</th><th>Details</th></tr></thead>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Details</th>
+        </tr>
+      </thead>
       <tbody>
         {% for row in view.customer_rows %}
-        <tr><td>{{ row.Type }}</td><td>{{ row.Details }}</td></tr>
+        <tr>
+          <td>{{ row.Type }}</td>
+          <td>{{ row.Details }}</td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
   {% else %}
   <div class="empty-state">No customer data available</div>
-  {% endif %}
-
-  {# Type of Inventory #}
+  {% endif %} {# Type of Inventory #}
   <div class="subsection-title">Type of Inventory</div>
   {% if view.inventory_rows %}
   <div class="table-wrapper">
     <table class="table-col-30">
-      <thead><tr><th>Type</th><th>Details</th></tr></thead>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Details</th>
+        </tr>
+      </thead>
       <tbody>
         {% for row in view.inventory_rows %}
-        <tr><td>{{ row.Type }}</td><td>{{ row.Details }}</td></tr>
+        <tr>
+          <td>{{ row.Type }}</td>
+          <td>{{ row.Details }}</td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>
@@ -310,22 +341,21 @@
   <hr class="divider" />
 
   {# ════════════════════════════════════════════════════════════════════════ #}
-  {# ASSERTIONS                                                               #}
-  {# ════════════════════════════════════════════════════════════════════════ #}
+  {# ASSERTIONS #} {#
+  ════════════════════════════════════════════════════════════════════════ #}
   <div class="section-header">
-    <span>📋</span><h2>Assertions</h2>
+    <span>📋</span>
+    <h2>Assertions</h2>
   </div>
 
-  {# Assertion AI summary #}
-  {% if view.assertion_summary %}
+  {# Assertion AI summary #} {% if view.assertion_summary %}
   <div class="ai-card">
     <div class="ai-card-title">📊 Assertion Analysis Summary</div>
-    <div id="assertion-summary-content" class="markdown-content">{{ view.assertion_summary }}</div>
+    <div id="assertion-summary-content" class="markdown-content">
+      {{ view.assertion_summary }}
+    </div>
   </div>
-  {% endif %}
-
-  {# Assertions table #}
-  {% if view.assertion_rows %}
+  {% endif %} {# Assertions table #} {% if view.assertion_rows %}
   <div class="table-wrapper">
     <table class="assertions-table">
       <thead>
@@ -341,7 +371,11 @@
       </thead>
       <tbody>
         {% for row in view.assertion_rows %}
-        <tr class="assertion-row" data-assertion-id="{{ row.assertion_id }}" data-assertion-text="{{ row.assertion_text }}">
+        <tr
+          class="assertion-row"
+          data-assertion-id="{{ row.assertion_id }}"
+          data-assertion-text="{{ row.assertion_text }}"
+        >
           <td>{{ row.num }}</td>
           <td>{{ row.assertion_text }}</td>
           <td>{{ row.assertion_type }}</td>
@@ -356,14 +390,21 @@
   </div>
   {% else %}
   <div class="empty-state">No assertions available</div>
-  {% endif %}
-
-  {# Assertion detail modal (supporting/opposing markdown) #}
-  <div id="assertion-modal" class="modal-backdrop" style="display:none;">
-    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="assertion-modal-title">
+  {% endif %} {# Assertion detail modal (supporting/opposing markdown) #}
+  <div id="assertion-modal" class="modal-backdrop" style="display: none">
+    <div
+      class="modal-card"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="assertion-modal-title"
+    >
       <div class="modal-header">
-        <div id="assertion-modal-title" class="modal-title">Assertion detail</div>
-        <button type="button" id="assertion-modal-close" class="modal-close">✕</button>
+        <div id="assertion-modal-title" class="modal-title">
+          Assertion detail
+        </div>
+        <button type="button" id="assertion-modal-close" class="modal-close">
+          ✕
+        </button>
       </div>
       <div class="modal-body">
         <div id="assertion-modal-status" class="modal-status"></div>
@@ -386,7 +427,8 @@
   </div>
 
   {% endif %} {# end if view #}
-</div> {# end .page-wrap #}
+</div>
+{# end .page-wrap #}
 <script>
   (function () {
     const input = document.getElementById("company-input");
@@ -404,7 +446,8 @@
         el.style.display = show ? "block" : "none";
         if (show) anyVisible = true;
       });
-      box.style.display = anyVisible && document.activeElement === input ? "block" : "none";
+      box.style.display =
+        anyVisible && document.activeElement === input ? "block" : "none";
     }
 
     input.addEventListener("focus", updateSuggestions);
@@ -425,12 +468,21 @@
   })();
 </script>
 <style>
-  .assertion-row { cursor: pointer; }
-  .assertion-row:hover { background: rgba(255,255,255,0.04); }
+  .assertion-row {
+    cursor: pointer;
+  }
+  .assertion-row:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
   .modal-backdrop {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.65);
-    display: flex; align-items: center; justify-content: center;
-    padding: 24px; z-index: 9999;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 9999;
   }
   .modal-card {
     width: min(1200px, 90vw);
@@ -438,99 +490,212 @@
     overflow: auto;
     border-radius: 16px;
     background: #101217;
-    border: 1px solid rgba(255,255,255,0.10);
-    box-shadow: 0 20px 60px rgba(0,0,0,0.55);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
   }
   .modal-header {
-    display: flex; align-items: center; justify-content: space-between;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     padding: 14px 16px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
-  .modal-title { font-weight: 700; }
+  .modal-title {
+    font-weight: 700;
+  }
   .modal-close {
-    background: transparent; border: 0; color: rgba(255,255,255,0.7);
-    font-size: 18px; cursor: pointer; padding: 6px 8px;
+    background: transparent;
+    border: 0;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 6px 8px;
   }
-  .modal-close:hover { color: rgba(255,255,255,0.95); }
-  .modal-body { padding: 14px 16px 18px; }
-  .modal-status { color: rgba(255,255,255,0.7); margin-bottom: 10px; }
+  .modal-close:hover {
+    color: rgba(255, 255, 255, 0.95);
+  }
+  .modal-body {
+    padding: 14px 16px 18px;
+  }
+  .modal-status {
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 10px;
+  }
   .assertion-text-section {
     margin-bottom: 16px;
     padding: 14px;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 8px;
   }
   .assertion-text-label {
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: rgba(255,255,255,0.5);
+    color: rgba(255, 255, 255, 0.5);
     margin-bottom: 8px;
     font-weight: 600;
   }
   .assertion-text-content {
     font-size: 15px;
     line-height: 1.5;
-    color: rgba(255,255,255,0.95);
+    color: rgba(255, 255, 255, 0.95);
   }
-  .modal-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  @media (max-width: 900px) { .modal-columns { grid-template-columns: 1fr; } }
-  .modal-col { border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; overflow: hidden; }
-  .modal-col-title { padding: 10px 12px; font-weight: 700; background: rgba(255,255,255,0.04); }
+  .modal-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 900px) {
+    .modal-columns {
+      grid-template-columns: 1fr;
+    }
+  }
+  .modal-col {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .modal-col-title {
+    padding: 10px 12px;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.04);
+  }
   .modal-content {
-    margin: 0; padding: 16px; overflow-y: auto; max-height: 70vh;
-    font-size: 14px; line-height: 1.6;
+    margin: 0;
+    padding: 16px;
+    overflow-y: auto;
+    max-height: 70vh;
+    font-size: 14px;
+    line-height: 1.6;
   }
-  .modal-content::-webkit-scrollbar { display: none; }
-  .modal-content { -ms-overflow-style: none; scrollbar-width: none; }
-  .modal-content h1 { font-size: 1.5em; margin: 1em 0 0.5em; font-weight: 700; }
-  .modal-content h2 { font-size: 1.3em; margin: 1em 0 0.5em; font-weight: 700; }
-  .modal-content h3 { font-size: 1.1em; margin: 1em 0 0.5em; font-weight: 700; }
-  .modal-content p { margin: 0.5em 0; }
-  .modal-content ul, .modal-content ol { margin: 0.5em 0; padding-left: 1.5em; }
-  .modal-content li { margin: 0.3em 0; }
-  .modal-content pre { 
-    background: rgba(0,0,0,0.3); padding: 12px; border-radius: 6px; 
-    overflow-x: auto; font-size: 12px; margin: 0.5em 0;
+  .modal-content::-webkit-scrollbar {
+    display: none;
+  }
+  .modal-content {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .modal-content h1 {
+    font-size: 1.5em;
+    margin: 1em 0 0.5em;
+    font-weight: 700;
+  }
+  .modal-content h2 {
+    font-size: 1.3em;
+    margin: 1em 0 0.5em;
+    font-weight: 700;
+  }
+  .modal-content h3 {
+    font-size: 1.1em;
+    margin: 1em 0 0.5em;
+    font-weight: 700;
+  }
+  .modal-content p {
+    margin: 0.5em 0;
+  }
+  .modal-content ul,
+  .modal-content ol {
+    margin: 0.5em 0;
+    padding-left: 1.5em;
+  }
+  .modal-content li {
+    margin: 0.3em 0;
+  }
+  .modal-content pre {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 12px;
+    margin: 0.5em 0;
   }
   .modal-content code {
-    background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 3px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 0.9em;
   }
-  .modal-content pre code { background: none; padding: 0; }
-  .modal-content strong { font-weight: 700; }
-  .modal-content em { font-style: italic; }
+  .modal-content pre code {
+    background: none;
+    padding: 0;
+  }
+  .modal-content strong {
+    font-weight: 700;
+  }
+  .modal-content em {
+    font-style: italic;
+  }
   .modal-content blockquote {
-    border-left: 3px solid rgba(255,255,255,0.2);
-    padding-left: 12px; margin: 0.5em 0; color: rgba(255,255,255,0.7);
+    border-left: 3px solid rgba(255, 255, 255, 0.2);
+    padding-left: 12px;
+    margin: 0.5em 0;
+    color: rgba(255, 255, 255, 0.7);
   }
-  
+
   .markdown-content {
-    font-size: 14px; line-height: 1.6;
+    font-size: 14px;
+    line-height: 1.6;
   }
-  .markdown-content h1 { font-size: 1.5em; margin: 1em 0 0.5em; font-weight: 700; }
-  .markdown-content h2 { font-size: 1.3em; margin: 1em 0 0.5em; font-weight: 700; }
-  .markdown-content h3 { font-size: 1.1em; margin: 1em 0 0.5em; font-weight: 700; }
-  .markdown-content p { margin: 0.5em 0; }
-  .markdown-content ul, .markdown-content ol { margin: 0.5em 0; padding-left: 1.5em; }
-  .markdown-content li { margin: 0.3em 0; }
-  .markdown-content pre { 
-    background: rgba(0,0,0,0.3); padding: 12px; border-radius: 6px; 
-    overflow-x: auto; font-size: 12px; margin: 0.5em 0;
+  .markdown-content h1 {
+    font-size: 1.5em;
+    margin: 1em 0 0.5em;
+    font-weight: 700;
+  }
+  .markdown-content h2 {
+    font-size: 1.3em;
+    margin: 1em 0 0.5em;
+    font-weight: 700;
+  }
+  .markdown-content h3 {
+    font-size: 1.1em;
+    margin: 1em 0 0.5em;
+    font-weight: 700;
+  }
+  .markdown-content p {
+    margin: 0.5em 0;
+  }
+  .markdown-content ul,
+  .markdown-content ol {
+    margin: 0.5em 0;
+    padding-left: 1.5em;
+  }
+  .markdown-content li {
+    margin: 0.3em 0;
+  }
+  .markdown-content pre {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 12px;
+    margin: 0.5em 0;
   }
   .markdown-content code {
-    background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 3px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 0.9em;
   }
-  .markdown-content pre code { background: none; padding: 0; }
-  .markdown-content strong { font-weight: 700; }
-  .markdown-content em { font-style: italic; }
+  .markdown-content pre code {
+    background: none;
+    padding: 0;
+  }
+  .markdown-content strong {
+    font-weight: 700;
+  }
+  .markdown-content em {
+    font-style: italic;
+  }
   .markdown-content blockquote {
-    border-left: 3px solid rgba(255,255,255,0.2);
-    padding-left: 12px; margin: 0.5em 0; color: rgba(255,255,255,0.7);
+    border-left: 3px solid rgba(255, 255, 255, 0.2);
+    padding-left: 12px;
+    margin: 0.5em 0;
+    color: rgba(255, 255, 255, 0.7);
   }
 </style>
 <script>
@@ -575,40 +740,48 @@
         if (!assertionId || assertionId === "None" || !siteId) return;
 
         statusEl.textContent = "Loading…";
-        assertionTextEl.textContent = assertionText || "No assertion text available";
+        assertionTextEl.textContent =
+          assertionText || "No assertion text available";
         supportingEl.innerHTML = "";
         opposingEl.innerHTML = "";
         openModal();
 
         try {
           const url = `/assertion-detail?site_id=${encodeURIComponent(siteId)}&assertion_id=${encodeURIComponent(assertionId)}`;
-          const resp = await fetch(url, { headers: { "Accept": "application/json" } });
+          const resp = await fetch(url, {
+            headers: { Accept: "application/json" },
+          });
           if (!resp.ok) {
             const err = await resp.text();
             throw new Error(`${resp.status} ${resp.statusText}: ${err}`);
           }
           const data = await resp.json();
-          
+
           // Simple markdown-to-HTML converter
           function renderMarkdown(md) {
             if (!md) return "<p>No content found.</p>";
             return md
-              .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-              .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-              .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-              .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-              .replace(/\*(.*?)\*/g, '<em>$1</em>')
-              .replace(/```json\n([\s\S]*?)\n```/g, '<pre><code>$1</code></pre>')
-              .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-              .replace(/`([^`]+)`/g, '<code>$1</code>')
-              .replace(/^\- (.*$)/gim, '<li>$1</li>')
-              .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
-              .replace(/\n\n/g, '</p><p>')
-              .replace(/^(?!<[hup])/gim, '<p>')
-              .replace(/(?<![>])\n/g, '<br>');
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/^### (.*$)/gim, "<h3>$1</h3>")
+              .replace(/^## (.*$)/gim, "<h2>$1</h2>")
+              .replace(/^# (.*$)/gim, "<h1>$1</h1>")
+              .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+              .replace(/\*(.*?)\*/g, "<em>$1</em>")
+              .replace(
+                /```json\n([\s\S]*?)\n```/g,
+                "<pre><code>$1</code></pre>",
+              )
+              .replace(/```([\s\S]*?)```/g, "<pre><code>$1</code></pre>")
+              .replace(/`([^`]+)`/g, "<code>$1</code>")
+              .replace(/^\- (.*$)/gim, "<li>$1</li>")
+              .replace(/(<li>.*<\/li>)/s, "<ul>$1</ul>")
+              .replace(/\n\n/g, "</p><p>")
+              .replace(/^(?!<[hup])/gim, "<p>")
+              .replace(/(?<![>])\n/g, "<br>");
           }
-          
+
           supportingEl.innerHTML = renderMarkdown(data && data.supporting);
           opposingEl.innerHTML = renderMarkdown(data && data.opposing);
           statusEl.textContent = "";
@@ -623,28 +796,30 @@
   (function () {
     const summaryEl = document.getElementById("assertion-summary-content");
     if (!summaryEl) return;
-    
+
     const rawText = summaryEl.textContent;
-    
+
     function renderMarkdown(md) {
       if (!md) return "";
       return md
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-        .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-        .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/```json\n([\s\S]*?)\n```/g, '<pre><code>$1</code></pre>')
-        .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-        .replace(/`([^`]+)`/g, '<code>$1</code>')
-        .replace(/^\- (.*$)/gim, '<li>$1</li>')
-        .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
-        .replace(/\n\n/g, '</p><p>')
-        .replace(/^(?!<[hup])/gim, '<p>')
-        .replace(/(?<![>])\n/g, '<br>');
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/^### (.*$)/gim, "<h3>$1</h3>")
+        .replace(/^## (.*$)/gim, "<h2>$1</h2>")
+        .replace(/^# (.*$)/gim, "<h1>$1</h1>")
+        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\*(.*?)\*/g, "<em>$1</em>")
+        .replace(/```json\n([\s\S]*?)\n```/g, "<pre><code>$1</code></pre>")
+        .replace(/```([\s\S]*?)```/g, "<pre><code>$1</code></pre>")
+        .replace(/`([^`]+)`/g, "<code>$1</code>")
+        .replace(/^\- (.*$)/gim, "<li>$1</li>")
+        .replace(/(<li>.*<\/li>)/s, "<ul>$1</ul>")
+        .replace(/\n\n/g, "</p><p>")
+        .replace(/^(?!<[hup])/gim, "<p>")
+        .replace(/(?<![>])\n/g, "<br>");
     }
-    
+
     summaryEl.innerHTML = renderMarkdown(rawText);
   })();
 
@@ -692,26 +867,41 @@
       const text = copyAllText();
       if (!text) return;
       var btn = copyBtn;
-      navigator.clipboard.writeText(text).then(function () {
-        var orig = btn.textContent;
-        btn.textContent = "Copied!";
-        setTimeout(function () { btn.textContent = orig; }, 1600);
-      }).catch(function () {
-        var orig = btn.textContent;
-        btn.textContent = "Failed";
-        setTimeout(function () { btn.textContent = orig; }, 1600);
-      });
+      navigator.clipboard
+        .writeText(text)
+        .then(function () {
+          var orig = btn.textContent;
+          btn.textContent = "Copied!";
+          setTimeout(function () {
+            btn.textContent = orig;
+          }, 1600);
+        })
+        .catch(function () {
+          var orig = btn.textContent;
+          btn.textContent = "Failed";
+          setTimeout(function () {
+            btn.textContent = orig;
+          }, 1600);
+        });
     });
 
     async function loadTeasers(isRegenerate) {
-      setLoading(true, isRegenerate ? "Regenerating teaser…" : "Loading teaser…");
+      setLoading(
+        true,
+        isRegenerate ? "Regenerating teaser…" : "Loading teaser…",
+      );
       copyBtn.disabled = true;
       listEl.innerHTML = "";
       try {
-        var url = "/api/site/" + encodeURIComponent(siteId) + "/operations-teaser";
-        var resp = await fetch(url, { credentials: "same-origin", headers: { Accept: "application/json" } });
+        var url =
+          "/api/site/" + encodeURIComponent(siteId) + "/operations-teaser";
+        var resp = await fetch(url, {
+          credentials: "same-origin",
+          headers: { Accept: "application/json" },
+        });
         if (resp.status === 404) {
-          statusEl.textContent = "No operations report is available for this site yet.";
+          statusEl.textContent =
+            "No operations report is available for this site yet.";
           copyBtn.disabled = true;
           return;
         }
@@ -719,7 +909,11 @@
           var errMsg = resp.statusText;
           try {
             var j = await resp.json();
-            if (j && j.detail) errMsg = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail);
+            if (j && j.detail)
+              errMsg =
+                typeof j.detail === "string"
+                  ? j.detail
+                  : JSON.stringify(j.detail);
           } catch (ignore) {}
           throw new Error(errMsg);
         }
@@ -739,7 +933,9 @@
         }
         renderTeaserItems(teaser);
       } catch (err) {
-        statusEl.textContent = "Could not load teaser: " + (err && err.message ? err.message : String(err));
+        statusEl.textContent =
+          "Could not load teaser: " +
+          (err && err.message ? err.message : String(err));
         copyBtn.disabled = true;
       } finally {
         setLoading(false);

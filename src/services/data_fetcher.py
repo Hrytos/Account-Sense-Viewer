@@ -75,8 +75,9 @@ async def list_sites_for_account(account_id: str) -> List[Dict]:
     sites_res = await asyncio.to_thread(run_exec_sites)
     rows = sites_res.data or []
 
-    # Build assertion counts per site_id using a single IN query on site_ids
+    # Build assertion counts and OFI scores per site_id using single IN queries
     assertion_counts: Dict[str, int] = {}
+    ofi_scores: Dict[str, float] = {}
     site_ids = [row.get("site_id") for row in rows if row.get("site_id")]
     
     if site_ids:
@@ -95,6 +96,23 @@ async def list_sites_for_account(account_id: str) -> List[Dict]:
             if not sid:
                 continue
             assertion_counts[sid] = assertion_counts.get(sid, 0) + 1
+
+        def run_exec_scores():
+            return (
+                supabase.table("account_sites_report")
+                .select("site_id, ofi_score")
+                .in_("site_id", site_ids)
+                .eq("is_archived", False)
+                .execute()
+            )
+
+        scores_res = await asyncio.to_thread(run_exec_scores)
+        for row in scores_res.data or []:
+            sid = row.get("site_id")
+            score = row.get("ofi_score")
+            if not sid or score is None:
+                continue
+            ofi_scores[sid] = score
         
     sites: List[Dict] = []
     for row in rows:
@@ -121,6 +139,7 @@ async def list_sites_for_account(account_id: str) -> List[Dict]:
                 "site_size_value": size_val,
                 "site_size_str": site_size_str,
                 "assertion_count": assertion_count,
+                "ofi_score": ofi_scores.get(site_id),
             }
         )
 
@@ -174,6 +193,19 @@ async def get_site_data(site_id: str) -> dict:
         company_name = site_view_row.get("company_name")
         if site_size is None:
             site_size = site_view_row.get("site_size_value")
+
+    # Optional site-level score from account_sites_report
+    site_report = await asyncio.to_thread(
+        lambda: supabase.table("account_sites_report")
+        .select("ofi_score")
+        .eq("site_id", site_id)
+        .eq("is_archived", False)
+        .limit(1)
+        .execute()
+    )
+    ofi_score = None
+    if site_report.data:
+        ofi_score = site_report.data[0].get("ofi_score")
 
     if not account_id:
         raise ValueError(f"Site {site_id} has no account_id in source data")
@@ -234,6 +266,7 @@ async def get_site_data(site_id: str) -> dict:
         "account_id":   account_id,
         "company_name": resolved_company_name,
         "site_size":    site_size,
+        "ofi_score":    ofi_score,
         "location":     location_res.data,
         "linkedin_url": (account_res.data or {}).get("linkedin_url"),
         "account_domain": account_domain,

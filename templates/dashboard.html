@@ -55,6 +55,12 @@ endblock %} {% block body %} {# ── Top nav ── #}
           <span class="meta-value">{{ s.assertion_count }}</span>
         </div>
         <div class="site-card-meta-row">
+          <span class="meta-label">OFI Score</span>
+          <span class="meta-value"
+            >{{ "%.2f"|format(s.ofi_score) if s.ofi_score is not none else "—" }}</span
+          >
+        </div>
+        <div class="site-card-meta-row">
           <span class="meta-label">Site ID</span>
           <span class="site-card-id">{{ s.site_id }}</span>
         </div>
@@ -228,6 +234,10 @@ endblock %} {% block body %} {# ── Top nav ── #}
     <div class="metric-card">
       <div class="label">Size</div>
       <div class="value">{{ view.site_size_str }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">OFI Score</div>
+      <div class="value">{{ view.ofi_score_str }}</div>
     </div>
   </div>
 

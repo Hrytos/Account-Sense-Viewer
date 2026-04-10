@@ -140,6 +140,8 @@ def build_view_model(data: dict) -> dict:
     metadata = location.get("metadata") or {}
     facility_type = metadata.get("facility_type", "—") if isinstance(metadata, dict) else "—"
     site_size_str = f"{data['site_size']:,.0f} sq ft" if data["site_size"] else "—"
+    ofi_score = data.get("ofi_score")
+    ofi_score_str = f"{ofi_score:.2f}" if isinstance(ofi_score, (int, float)) else "—"
 
     # ── Google Maps URL for site ──
     full_address = location.get("full_address") or ""
@@ -211,6 +213,8 @@ def build_view_model(data: dict) -> dict:
         "full_address":  full_address or "—",
         "facility_type": facility_type,
         "site_size_str": site_size_str,
+        "ofi_score": ofi_score,
+        "ofi_score_str": ofi_score_str,
         "maps_url":      maps_url,
         # event tables
         "finance_rows":      finance_rows,

@@ -730,7 +730,13 @@
           copyBtn.disabled = true;
           return;
         }
-        statusEl.textContent = "";
+        if (data.note) {
+          statusEl.textContent = String(data.note);
+        } else if (data.source === "static") {
+          statusEl.textContent = "Showing static report highlights.";
+        } else {
+          statusEl.textContent = "";
+        }
         renderTeaserItems(teaser);
       } catch (err) {
         statusEl.textContent = "Could not load teaser: " + (err && err.message ? err.message : String(err));

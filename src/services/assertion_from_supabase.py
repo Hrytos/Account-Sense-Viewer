@@ -79,6 +79,8 @@ def fetch_supporting_and_opposing(
     SITE_SLUG_OVERRIDES = {
         "8ee0c462-d914-4d12-8085-c56986450221": "bda",
         "92000d6f-7321-434d-8ad0-cde1575c3c5b": "saltbox_ga",
+        "bc669593-c315-4ab7-8c61-27a9e88820b0": "saltbox_ga",
+        "8a726b0d-dc12-4e6b-ab09-db61bce5480b": "saltbox_ga",
         "6b7d2d8f-87bb-440a-8c3c-feac52f42fe2": "advance_auto_parts",
         "7ac021d3-62cb-4637-a42d-4835780fbd29": "leonard_s_express",
         "600a9c42-cc7c-4f85-830a-d035d8e97a93": "empire_office",

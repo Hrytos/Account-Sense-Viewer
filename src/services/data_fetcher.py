@@ -130,21 +130,49 @@ async def get_site_data(site_id: str) -> dict:
     """
     supabase = get_supabase_client()
 
-    # Initial lookup is the dependency for all subsequent parallel queries
+    site_info = None
+    account_id = None
+    company_name = None
+    site_size = None
+
+    # Primary source: account_sites
+    site_base = await asyncio.to_thread(
+        lambda: supabase.table("account_sites")
+        .select("site_id, account_id, company_name, metadata")
+        .eq("site_id", site_id)
+        .limit(1)
+        .execute()
+    )
+    if not site_base.data:
+        raise ValueError(f"Site {site_id} not found in account_sites")
+
+    site_info = site_base.data[0]
+    account_id = site_info.get("account_id")
+    company_name = site_info.get("company_name")
+    metadata = site_info.get("metadata") or {}
+    if isinstance(metadata, dict):
+        site_size = (
+            metadata.get("site_size_value")
+            or metadata.get("site_size")
+            or metadata.get("square_footage")
+        )
+
+    # Optional enrichment from view_account_site_size
     site_view = await asyncio.to_thread(
         lambda: supabase.table("view_account_site_size")
         .select("site_id, account_id, company_name, site_size_value")
         .eq("site_id", site_id)
+        .limit(1)
         .execute()
     )
+    if site_view.data:
+        site_view_row = site_view.data[0]
+        company_name = site_view_row.get("company_name")
+        if site_size is None:
+            site_size = site_view_row.get("site_size_value")
 
-    if not site_view.data:
-        raise ValueError(f"Site {site_id} not found in view_account_site_size")
-
-    site_info    = site_view.data[0]
-    account_id   = site_info["account_id"]
-    company_name = site_info["company_name"]
-    site_size    = site_info["site_size_value"]
+    if not account_id:
+        raise ValueError(f"Site {site_id} has no account_id in source data")
 
     async def fetch_query(table_name, select_val, filter_col=None, filter_val=None, single=False):
         def run_exec():
@@ -175,10 +203,15 @@ async def get_site_data(site_id: str) -> dict:
 
     results = await asyncio.gather(*tasks)
     location_res, account_res, assertions_raw, finance_res, business_res, operational_res, customer_res = results
-    account_domain = (account_res.data or {}).get("account_domain")
+    account_data = account_res.data or {}
+    account_domain = account_data.get("account_domain")
+    resolved_company_name = (
+        company_name
+        or "Unknown Company"
+    )
 
     assertions = []
-    for item in assertions_raw.data:
+    for item in (assertions_raw.data or []):
         detail = item["assertions"]
         assertions.append({
             "assertion_id":     item.get("assertion_id"),
@@ -195,7 +228,7 @@ async def get_site_data(site_id: str) -> dict:
     return {
         "site_id":      site_id,
         "account_id":   account_id,
-        "company_name": company_name,
+        "company_name": resolved_company_name,
         "site_size":    site_size,
         "location":     location_res.data,
         "linkedin_url": (account_res.data or {}).get("linkedin_url"),

@@ -36,6 +36,7 @@ from src.services.data_fetcher import (
     list_sites_for_account,
 )
 from src.services.report_metadata import fetch_latest_report_metadata
+from src.services.report_metadata import split_section_body
 from src.services.ai_summarizer import (
     generate_account_summary,
     generate_company_overview,
@@ -244,6 +245,37 @@ def _company_slug_candidates(company_name: str) -> list[str]:
     for s in (s1, s2, s3):
         if s and s not in out:
             out.append(s)
+    return out
+
+
+def _build_static_operations_teaser(metadata: dict) -> list[str]:
+    """
+    Build non-LLM fallback teaser lines from report metadata sections.
+    This keeps the UI useful when OpenAI is unavailable.
+    """
+    sections = metadata.get("sections") or []
+    out: list[str] = []
+    for sec in sections:
+        if not isinstance(sec, dict):
+            continue
+        heading = str(sec.get("heading") or "").strip()
+        narrative, bullets = split_section_body(str(sec.get("body") or ""))
+
+        if bullets:
+            if heading:
+                out.append(f"{heading}: {bullets[0]}")
+            else:
+                out.append(bullets[0])
+        elif narrative:
+            sentence = narrative.strip().split("\n", 1)[0].strip()
+            if sentence:
+                if heading:
+                    out.append(f"{heading}: {sentence}")
+                else:
+                    out.append(sentence)
+
+        if len(out) >= 5:
+            break
     return out
 
 
@@ -511,6 +543,13 @@ async def operations_teaser(request: Request, site_id: str):
     try:
         teaser = generate_operations_teaser_variations(metadata)
     except Exception as e:
+        fallback = _build_static_operations_teaser(metadata)
+        if fallback:
+            return {
+                "teaser": fallback,
+                "source": "static",
+                "note": f"AI teaser unavailable ({e}). Showing report highlights instead.",
+            }
         raise HTTPException(status_code=502, detail=str(e)) from e
 
     return {"teaser": teaser}

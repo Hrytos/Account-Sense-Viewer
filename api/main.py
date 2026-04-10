@@ -314,7 +314,10 @@ async def logout(request: Request):
 
 
 @app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard(request: Request, account_id: Optional[str] = None):
+async def dashboard(
+    request: Request,
+    account_id: Optional[str] = None,
+):
     if not request.session.get("authenticated"):
         return RedirectResponse("/", status_code=302)
 
@@ -355,11 +358,32 @@ async def select_company(
 
     account_id = None
     selected_company_name = company_name.strip()
-    for c in companies:
-        if c["company_name"] == company_name:
-            account_id = c["account_id"]
-            selected_company_name = c["company_name"]
-            break
+    q = selected_company_name.lower()
+
+    # 1) Exact match (case-insensitive), 2) fallback to contains match.
+    exact = next(
+        (
+            c
+            for c in companies
+            if (c.get("company_name") or "").strip().lower() == q
+        ),
+        None,
+    )
+    if exact:
+        account_id = exact["account_id"]
+        selected_company_name = exact["company_name"]
+    else:
+        partial = next(
+            (
+                c
+                for c in companies
+                if q and q in (c.get("company_name") or "").strip().lower()
+            ),
+            None,
+        )
+        if partial:
+            account_id = partial["account_id"]
+            selected_company_name = partial["company_name"]
 
     if not account_id:
         # Company name not found – show error but keep what user typed
@@ -376,22 +400,7 @@ async def select_company(
                 "sites": [],
             },
         )
-
-    sites = await list_sites_for_account(account_id)
-
-    return templates.TemplateResponse(
-        request,
-        "dashboard.html",
-        {
-            "view": None,
-            "error": None,
-            "site_id": "",
-            "companies": companies,
-            "selected_account_id": account_id,
-            "selected_company_name": selected_company_name,
-            "sites": sites,
-        },
-    )
+    return RedirectResponse(f"/dashboard?account_id={account_id}", status_code=302)
 
 
 @app.get("/viewer", response_class=HTMLResponse)

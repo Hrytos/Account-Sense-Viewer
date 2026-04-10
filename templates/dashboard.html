@@ -436,26 +436,46 @@ endblock %} {% block body %} {# ── Top nav ── #}
     if (!input || !box) return;
 
     const items = Array.from(box.querySelectorAll(".company-suggestion"));
+    const PAGE = 20;
+    let visibleLimit = PAGE;
 
     function updateSuggestions() {
       const q = input.value.trim().toLowerCase();
-      let anyVisible = false;
+      let shown = 0;
+      let totalMatch = 0;
       items.forEach((el) => {
         const name = (el.dataset.name || "").toLowerCase();
-        const show = !q || name.includes(q);
+        const match = !q || name.includes(q);
+        if (match) totalMatch += 1;
+        const show = match && shown < visibleLimit;
         el.style.display = show ? "block" : "none";
-        if (show) anyVisible = true;
+        if (show) shown += 1;
       });
-      box.style.display =
-        anyVisible && document.activeElement === input ? "block" : "none";
+
+      box.style.display = shown > 0 && document.activeElement === input ? "block" : "none";
     }
 
-    input.addEventListener("focus", updateSuggestions);
-    input.addEventListener("input", updateSuggestions);
+    input.addEventListener("focus", () => {
+      visibleLimit = PAGE;
+      updateSuggestions();
+    });
+    input.addEventListener("input", () => {
+      visibleLimit = PAGE;
+      updateSuggestions();
+    });
     input.addEventListener("blur", () => {
       setTimeout(() => {
         box.style.display = "none";
       }, 150);
+    });
+
+    // Infinite-scroll behavior inside dropdown suggestions.
+    box.addEventListener("scroll", () => {
+      const nearBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 24;
+      if (nearBottom) {
+        visibleLimit += PAGE;
+        updateSuggestions();
+      }
     });
 
     items.forEach((el) => {

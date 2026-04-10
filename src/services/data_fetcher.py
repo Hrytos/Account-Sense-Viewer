@@ -17,16 +17,30 @@ async def list_companies() -> List[Dict]:
     """
     supabase = get_supabase_client()
 
-    def run_exec():
-        return (
-            supabase.table("view_account_site_size")
-            .select("account_id, company_name")
-            .order("company_name")
-            .execute()
-        )
+    # Supabase/PostgREST commonly caps rows per request; page through all companies.
+    page_size = 1000
+    start = 0
+    rows: List[Dict] = []
+    while True:
+        end = start + page_size - 1
+        def run_exec_page():
+            return (
+                supabase.table("account_sites")
+                .select("account_id, company_name")
+                .eq("is_archived", False)
+                .order("company_name")
+                .range(start, end)
+                .execute()
+            )
 
-    res = await asyncio.to_thread(run_exec)
-    rows = res.data or []
+        res = await asyncio.to_thread(run_exec_page)
+        batch = res.data or []
+        if not batch:
+            break
+        rows.extend(batch)
+        if len(batch) < page_size:
+            break
+        start += page_size
 
     # De-duplicate by account_id, keep first occurrence (already ordered by name)
     seen = {}
@@ -43,16 +57,18 @@ async def list_companies() -> List[Dict]:
 
 async def list_sites_for_account(account_id: str) -> List[Dict]:
     """
-    Return all sites for a given account_id from view_account_site_size.
+    Return all active sites for a given account_id from account_sites.
     Each site entry includes basic fields for UI cards.
     """
     supabase = get_supabase_client()
 
     def run_exec_sites():
         return (
-            supabase.table("view_account_site_size")
-            .select("site_id, account_id, company_name, site_size_value")
+            supabase.table("account_sites")
+            .select("site_id, account_id, company_name, full_address, metadata")
+            .eq("is_archived", False)
             .eq("account_id", account_id)
+            .order("created_at", desc=True)
             .execute()
         )
 
@@ -63,8 +79,6 @@ async def list_sites_for_account(account_id: str) -> List[Dict]:
     assertion_counts: Dict[str, int] = {}
     site_ids = [row.get("site_id") for row in rows if row.get("site_id")]
     
-    # Fetch full_address from account_sites table for all site_ids
-    address_map: Dict[str, str] = {}
     if site_ids:
         def run_exec_assertions():
             return (
@@ -73,19 +87,8 @@ async def list_sites_for_account(account_id: str) -> List[Dict]:
                 .in_("site_id", site_ids)
                 .execute()
             )
-        
-        def run_exec_addresses():
-            return (
-                supabase.table("account_sites")
-                .select("site_id, full_address")
-                .in_("site_id", site_ids)
-                .execute()
-            )
 
-        assertions_res, addresses_res = await asyncio.gather(
-            asyncio.to_thread(run_exec_assertions),
-            asyncio.to_thread(run_exec_addresses),
-        )
+        assertions_res = await asyncio.to_thread(run_exec_assertions)
         
         for row in assertions_res.data or []:
             sid = row.get("site_id")
@@ -93,17 +96,18 @@ async def list_sites_for_account(account_id: str) -> List[Dict]:
                 continue
             assertion_counts[sid] = assertion_counts.get(sid, 0) + 1
         
-        for row in addresses_res.data or []:
-            sid = row.get("site_id")
-            if sid:
-                address_map[sid] = row.get("full_address")
-
     sites: List[Dict] = []
     for row in rows:
         site_id = row.get("site_id")
-        full_address = address_map.get(site_id)
-        
-        size_val = row.get("site_size_value")
+        full_address = row.get("full_address")
+        metadata = row.get("metadata") or {}
+        size_val = None
+        if isinstance(metadata, dict):
+            size_val = (
+                metadata.get("site_size_value")
+                or metadata.get("site_size")
+                or metadata.get("square_footage")
+            )
         site_size_str = f"{size_val:,.0f} sq ft" if isinstance(size_val, (int, float)) else None
 
         assertion_count = assertion_counts.get(site_id, 0)

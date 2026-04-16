@@ -1,4 +1,4 @@
-httpx>=0.26,<0.28
+httpx>=0.28,<0.29
 supabase>=2.0
 python-dotenv
 openai

@@ -5,9 +5,59 @@ Also exposes helpers for listing companies and sites.
 """
 
 import asyncio
+import re
 from typing import List, Dict
 
 from src.core.clients import get_supabase_client
+
+
+def _parse_numeric_site_size(value) -> float | None:
+    """
+    Best-effort parse for site size values stored as text (e.g. "120000", "120,000",
+    "120000 sq ft"). Returns float on success, else None.
+    """
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    s = str(value).strip().lower()
+    if not s:
+        return None
+    # Remove common units/labels then extract the first numeric token.
+    s = s.replace("sqft", " ").replace("sq ft", " ").replace("square feet", " ")
+    m = re.search(r"(-?\d[\d,]*\.?\d*)", s)
+    if not m:
+        return None
+    token = m.group(1).replace(",", "")
+    try:
+        return float(token)
+    except ValueError:
+        return None
+
+
+async def _fetch_site_size_fallback(supabase, site_id: str) -> float | None:
+    """
+    Fallback lookup when we can't parse a numeric site size from events.
+    Prefers `account_site_size` if it exists; otherwise uses `view_account_site_size`.
+    """
+    def run_exec(table_name: str):
+        return (
+            supabase.table(table_name)
+            .select("site_size_value")
+            .eq("site_id", site_id)
+            .limit(1)
+            .execute()
+        )
+
+    for table_name in ("account_site_size", "view_account_site_size"):
+        try:
+            res = await asyncio.to_thread(lambda: run_exec(table_name))
+            if res.data:
+                return res.data[0].get("site_size_value")
+        except Exception:
+            # Table/view may not exist in some deployments — try the next option.
+            continue
+    return None
 
 
 async def list_companies() -> List[Dict]:
@@ -75,9 +125,11 @@ async def list_sites_for_account(account_id: str) -> List[Dict]:
     sites_res = await asyncio.to_thread(run_exec_sites)
     rows = sites_res.data or []
 
-    # Build assertion counts and OFI scores per site_id using single IN queries
+    # Build assertion counts, OFI scores, and event-derived site sizes per site_id
     assertion_counts: Dict[str, int] = {}
     ofi_scores: Dict[str, float] = {}
+    detector_sizes: Dict[str, float] = {}
+    fallback_sizes: Dict[str, float] = {}
     site_ids = [row.get("site_id") for row in rows if row.get("site_id")]
     
     if site_ids:
@@ -113,19 +165,68 @@ async def list_sites_for_account(account_id: str) -> List[Dict]:
             if not sid or score is None:
                 continue
             ofi_scores[sid] = score
+
+        def run_exec_size_detector():
+            return (
+                supabase.table("account_event_operational")
+                .select("site_id, event_type, event_type_value")
+                .in_("site_id", site_ids)
+                .eq("event_type", "Site size detector")
+                .execute()
+            )
+
+        detector_res = await asyncio.to_thread(run_exec_size_detector)
+        for row in detector_res.data or []:
+            sid = row.get("site_id")
+            if not sid:
+                continue
+            parsed = _parse_numeric_site_size(row.get("event_type_value"))
+            if parsed is None:
+                continue
+            detector_sizes[sid] = parsed
+
+        # Fallback sizes (table/view) for any sites missing a valid detector size
+        missing_for_fallback = [sid for sid in site_ids if sid not in detector_sizes]
+        if missing_for_fallback:
+            def run_exec_view_fallback(table_name: str):
+                return (
+                    supabase.table(table_name)
+                    .select("site_id, site_size_value")
+                    .in_("site_id", missing_for_fallback)
+                    .execute()
+                )
+
+            used_any = False
+            for table_name in ("account_site_size", "view_account_site_size"):
+                try:
+                    fb_res = await asyncio.to_thread(lambda: run_exec_view_fallback(table_name))
+                    used_any = True
+                    for r in fb_res.data or []:
+                        sid = r.get("site_id")
+                        val = r.get("site_size_value")
+                        if not sid or val is None:
+                            continue
+                        fallback_sizes[sid] = val
+                    break
+                except Exception:
+                    continue
+            if not used_any:
+                fallback_sizes = {}
         
     sites: List[Dict] = []
     for row in rows:
         site_id = row.get("site_id")
         full_address = row.get("full_address")
         metadata = row.get("metadata") or {}
-        size_val = None
-        if isinstance(metadata, dict):
+        size_val = detector_sizes.get(site_id)
+        if size_val is None and isinstance(metadata, dict):
             size_val = (
                 metadata.get("site_size_value")
                 or metadata.get("site_size")
                 or metadata.get("square_footage")
             )
+        if size_val is None:
+            size_val = fallback_sizes.get(site_id)
         site_size_str = f"{size_val:,.0f} sq ft" if isinstance(size_val, (int, float)) else None
 
         assertion_count = assertion_counts.get(site_id, 0)
@@ -173,14 +274,37 @@ async def get_site_data(site_id: str) -> dict:
     account_id = site_info.get("account_id")
     company_name = site_info.get("company_name")
     metadata = site_info.get("metadata") or {}
-    if isinstance(metadata, dict):
+
+    # Prefer event-derived site size when present and parseable
+    try:
+        detector_event = await asyncio.to_thread(
+            lambda: supabase.table("account_event_operational")
+            .select("event_type_value")
+            .eq("site_id", site_id)
+            .eq("event_type", "Site size detector")
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        if detector_event.data:
+            site_size = _parse_numeric_site_size(detector_event.data[0].get("event_type_value"))
+    except Exception:
+        # If event table/query fails, fall back to existing sources.
+        pass
+
+    # Next: site metadata
+    if site_size is None and isinstance(metadata, dict):
         site_size = (
             metadata.get("site_size_value")
             or metadata.get("site_size")
             or metadata.get("square_footage")
         )
 
-    # Optional enrichment from view_account_site_size
+    # Finally: fallback size table/view (what you called account_site_size)
+    if site_size is None:
+        site_size = await _fetch_site_size_fallback(supabase, site_id)
+
+    # Optional enrichment from view_account_site_size for company name (keep prior behavior)
     site_view = await asyncio.to_thread(
         lambda: supabase.table("view_account_site_size")
         .select("site_id, account_id, company_name, site_size_value")
@@ -191,8 +315,6 @@ async def get_site_data(site_id: str) -> dict:
     if site_view.data:
         site_view_row = site_view.data[0]
         company_name = site_view_row.get("company_name")
-        if site_size is None:
-            site_size = site_view_row.get("site_size_value")
 
     # Optional site-level score from account_sites_report
     site_report = await asyncio.to_thread(
